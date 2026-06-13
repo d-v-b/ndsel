@@ -1,0 +1,19 @@
+# Claude Code local logs
+.claude/hooks/.logs/
+
+# Rust
+target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / TypeScript
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS
+.DS_Store
