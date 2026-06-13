@@ -67,3 +67,26 @@ pub fn parse(json: &str) -> Result<Message, NdsqError> {
     };
     Ok(msg)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unknown_kind_maps_to_reason() {
+        let err = parse(r#"{ "kind": "bogus" }"#).unwrap_err();
+        assert_eq!(err.reason, Reason::UnknownKind);
+    }
+
+    #[test]
+    fn missing_kind_is_invalid_json() {
+        let err = parse(r#"{ "coords": [1] }"#).unwrap_err();
+        assert_eq!(err.reason, Reason::InvalidJson);
+    }
+
+    #[test]
+    fn malformed_json_is_invalid_json() {
+        let err = parse(r#"{ not json"#).unwrap_err();
+        assert_eq!(err.reason, Reason::InvalidJson);
+    }
+}
