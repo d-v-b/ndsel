@@ -57,6 +57,10 @@ A bound value wrapped in a single-element JSON array — `[n]` or `["-inf"]` or 
 
 The input rank and output rank of any `transform` MUST each be a non-negative integer. The 32-dimension ceiling is a tensorstore *implementation* constraint, not a property of this format: implementations that interoperate with tensorstore SHOULD reject ranks greater than 32, but ndsq itself imposes no upper bound.
 
+### 3.5 Integer value range
+
+All coordinate and bound values (excluding the `"-inf"`/`"+inf"` sentinels) are **64-bit signed integers**. Values outside `[-2^63, 2^63 - 1]` are out of range; implementations on platforms with unbounded integers (e.g. Python) MUST treat the 64-bit range as the canonical contract so that all conformant implementations agree.
+
 ---
 
 ## 4. The canonical core: `kind: "transform"`
