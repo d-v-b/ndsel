@@ -34,6 +34,91 @@ impl<'de> Deserialize<'de> for IndexValue {
     }
 }
 
+/// An index bound with an explicit/implicit flag.
+/// JSON: a bare value is explicit; the same value wrapped in a 1-element
+/// array is implicit (`7` vs `[7]`, `"-inf"` vs `["-inf"]`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ImplicitValue {
+    pub value: IndexValue,
+    pub implicit: bool,
+}
+
+impl ImplicitValue {
+    pub fn explicit(value: IndexValue) -> Self {
+        ImplicitValue { value, implicit: false }
+    }
+}
+
+impl Serialize for ImplicitValue {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        if self.implicit {
+            // serialize as a 1-element array
+            use serde::ser::SerializeSeq;
+            let mut seq = s.serialize_seq(Some(1))?;
+            seq.serialize_element(&self.value)?;
+            seq.end()
+        } else {
+            self.value.serialize(s)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ImplicitValue {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = Value::deserialize(d)?;
+        match v {
+            Value::Array(items) => {
+                if items.len() != 1 {
+                    return Err(de::Error::custom("implicit bound must be a 1-element array"));
+                }
+                let inner: IndexValue = serde_json::from_value(items.into_iter().next().unwrap())
+                    .map_err(de::Error::custom)?;
+                Ok(ImplicitValue { value: inner, implicit: true })
+            }
+            other => {
+                let inner: IndexValue = serde_json::from_value(other).map_err(de::Error::custom)?;
+                Ok(ImplicitValue { value: inner, implicit: false })
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod implicit_value_tests {
+    use super::*;
+
+    fn parse(json: &str) -> ImplicitValue {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn bare_value_is_explicit() {
+        let v = parse("7");
+        assert_eq!(v.value, IndexValue::Finite(7));
+        assert!(!v.implicit);
+    }
+
+    #[test]
+    fn bracketed_value_is_implicit() {
+        let v = parse("[7]");
+        assert_eq!(v.value, IndexValue::Finite(7));
+        assert!(v.implicit);
+    }
+
+    #[test]
+    fn bracketed_inf_is_implicit() {
+        let v = parse("[\"-inf\"]");
+        assert_eq!(v.value, IndexValue::NegInf);
+        assert!(v.implicit);
+    }
+
+    #[test]
+    fn explicit_serializes_bare_implicit_serializes_bracketed() {
+        assert_eq!(serde_json::to_string(&parse("7")).unwrap(), "7");
+        assert_eq!(serde_json::to_string(&parse("[7]")).unwrap(), "[7]");
+    }
+}
+
 #[cfg(test)]
 mod index_value_tests {
     use super::*;
