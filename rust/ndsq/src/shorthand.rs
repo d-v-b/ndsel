@@ -133,9 +133,43 @@ fn ceil_div(p: i64, q: i64) -> i64 {
 
 impl Points {
     pub fn desugar(self) -> Result<Transform, NdsqError> {
-        // Implemented in Task 11.
-        let _ = &self.coords;
-        unimplemented!("Points::desugar — Task 11")
+        let m = self.coords.len();
+        // Output rank = point dimensionality (0 if there are no points).
+        let n = self.coords.first().map(|p| p.len()).unwrap_or(0);
+        for p in &self.coords {
+            if p.len() != n {
+                return Err(NdsqError::new(
+                    crate::error::Reason::RankMismatch,
+                    "all points must have equal dimensionality",
+                ));
+            }
+        }
+
+        // input domain: single dimension [0, m)
+        let domain = Domain {
+            rank: 1,
+            inclusive_min: vec![fin(0)],
+            exclusive_max: vec![fin(m as i64)],
+            labels: vec![String::new()],
+        };
+
+        // one index_array map per output dimension k: column k across all points
+        let mut output = Vec::with_capacity(n);
+        for k in 0..n {
+            let column: Vec<serde_json::Value> = self
+                .coords
+                .iter()
+                .map(|p| serde_json::Value::from(p[k]))
+                .collect();
+            output.push(OutputMap::IndexArray {
+                offset: 0,
+                stride: 1,
+                index_array: serde_json::Value::Array(column),
+                bounds: (IndexValue::NegInf, IndexValue::PosInf),
+            });
+        }
+
+        Ok(from_parts(domain, output))
     }
 }
 
@@ -219,6 +253,47 @@ mod slice_tests {
             err(r#"{ "kind": "slice", "start": [0, 0], "stop": [4] }"#),
             crate::Reason::RankMismatch
         );
+    }
+}
+
+#[cfg(test)]
+mod points_tests {
+    use super::*;
+
+    fn norm(json: &str) -> serde_json::Value {
+        let msg = crate::parse(json).unwrap();
+        serde_json::to_value(crate::normalize(msg).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn points_transpose_to_columnar_index_arrays() {
+        // three 2-D points: (1,10), (2,20), (3,30)
+        let v = norm(r#"{ "kind": "points", "coords": [[1, 10], [2, 20], [3, 30]] }"#);
+        assert_eq!(v["input_rank"], 1);
+        assert_eq!(v["input_inclusive_min"], serde_json::json!([0]));
+        assert_eq!(v["input_exclusive_max"], serde_json::json!([3]));
+        assert_eq!(
+            v["output"],
+            serde_json::json!([
+                { "offset": 0, "stride": 1, "index_array": [1, 2, 3],   "index_array_bounds": ["-inf", "+inf"] },
+                { "offset": 0, "stride": 1, "index_array": [10, 20, 30], "index_array_bounds": ["-inf", "+inf"] }
+            ])
+        );
+    }
+
+    #[test]
+    fn empty_points_is_zero_length_with_unknown_rank_zero() {
+        // No points -> m=0, output rank 0 (no columns to emit)
+        let v = norm(r#"{ "kind": "points", "coords": [] }"#);
+        assert_eq!(v["input_rank"], 1);
+        assert_eq!(v["input_exclusive_max"], serde_json::json!([0]));
+        assert_eq!(v["output"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn ragged_points_is_rank_mismatch() {
+        let msg = crate::parse(r#"{ "kind": "points", "coords": [[1, 2], [3]] }"#).unwrap();
+        assert_eq!(crate::normalize(msg).unwrap_err().reason, crate::Reason::RankMismatch);
     }
 }
 
