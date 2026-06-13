@@ -44,7 +44,7 @@ impl RawDomain {
 
         // Determine rank from whichever arrays are present.
         let mut rank: Option<usize> = self.rank;
-        let mut check = |len: usize, rank: &mut Option<usize>| -> Result<(), NdsqError> {
+        let check = |len: usize, rank: &mut Option<usize>| -> Result<(), NdsqError> {
             match rank {
                 Some(r) if *r != len => Err(NdsqError::new(
                     Reason::RankMismatch,
