@@ -46,7 +46,7 @@ impl BoxSel {
     }
 }
 
-// Placeholders filled in Tasks 10–11 so `lib.rs` compiles. Replace these in those tasks.
+/// `{ "kind": "slice", "start": [...], "stop": [...], "step": [...]?, "labels": [...]? }`
 #[derive(Debug, Clone, Deserialize)]
 pub struct Slice {
     pub start: Vec<i64>,
@@ -57,6 +57,7 @@ pub struct Slice {
     pub labels: Option<Vec<String>>,
 }
 
+/// `{ "kind": "points", "coords": [[...], [...], ...] }`
 #[derive(Debug, Clone, Deserialize)]
 pub struct Points {
     pub coords: Vec<Vec<i64>>,
@@ -173,13 +174,11 @@ impl Points {
     }
 }
 
-// Used by slice/points desugaring helpers.
-#[allow(dead_code)]
+/// An explicit finite bound, used by the slice/points desugarers.
 fn fin(n: i64) -> ImplicitValue { ImplicitValue::explicit(IndexValue::Finite(n)) }
 
 #[cfg(test)]
 mod slice_tests {
-    use super::*;
 
     fn norm(json: &str) -> serde_json::Value {
         let msg = crate::parse(json).unwrap();
@@ -258,7 +257,6 @@ mod slice_tests {
 
 #[cfg(test)]
 mod points_tests {
-    use super::*;
 
     fn norm(json: &str) -> serde_json::Value {
         let msg = crate::parse(json).unwrap();
@@ -299,7 +297,6 @@ mod points_tests {
 
 #[cfg(test)]
 mod point_box_tests {
-    use super::*;
 
     fn norm(json: &str) -> serde_json::Value {
         let msg = crate::parse(json).unwrap();

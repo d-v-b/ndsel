@@ -55,7 +55,7 @@ A bound value wrapped in a single-element JSON array — `[n]` or `["-inf"]` or 
 
 ### 3.4 Rank
 
-The input rank and output rank of any `transform` MUST each be an integer in `[0, 32]` inclusive.
+The input rank and output rank of any `transform` MUST each be a non-negative integer. The 32-dimension ceiling is a tensorstore *implementation* constraint, not a property of this format: implementations that interoperate with tensorstore SHOULD reject ranks greater than 32, but ndsq itself imposes no upper bound.
 
 ---
 
@@ -67,7 +67,7 @@ A message with `kind: "transform"` is an object with the following members. All 
 
 #### Input domain
 
-- `input_rank` — a non-negative integer in `[0, 32]`. MAY be omitted when it can be inferred unambiguously from the lengths of the other arrays; implementations MUST infer it in that case. If present and inconsistent with the other arrays, the message MUST be rejected with reason code `rank_mismatch`.
+- `input_rank` — a non-negative integer (see §3.4 on the advisory 32-dimension ceiling). MAY be omitted when it can be inferred unambiguously from the lengths of the other arrays; implementations MUST infer it in that case. If present and inconsistent with the other arrays, the message MUST be rejected with reason code `rank_mismatch`.
 - `input_inclusive_min` — array of length `input_rank`. Each element is an integer, `"-inf"`, or one of those wrapped in a single-element array (implicit bound). If omitted, defaults to all zeros (explicit).
 - **Upper bound** — exactly one of:
   - `input_exclusive_max` — array of length `input_rank`; element `i` is the exclusive upper bound for dimension `i`.
@@ -93,9 +93,8 @@ A message with `kind: "transform"` is an object with the following members. All 
 
 ### 4.2 Canonical (normalized) form
 
-The function `normalize(message) → transform` MUST accept all redundancies in §4.1 and emit exactly one deterministic spelling:
+The function `normalize(message) → transform` MUST accept all redundancies in §4.1 and emit exactly one deterministic spelling. The normalized result is the **bare canonical transform body** — the input domain plus the explicit `output` maps. It does **not** carry a `kind` field: `kind` is a discriminator on *input messages* only, and stripping it is exactly what makes the normalized body a tensorstore-loadable `IndexTransform` (§2). The body MUST contain:
 
-- `kind` MUST be `"transform"`.
 - `input_rank` MUST be present.
 - `input_inclusive_min` MUST be present and fully explicit (no omission; defaults written out).
 - The upper bound MUST be expressed as `input_exclusive_max` regardless of which spelling the input used.
@@ -132,12 +131,11 @@ Selects one cell of an n-dimensional source; the result is a 0-D scalar.
 { "kind": "box", "inclusive_min": [...], "exclusive_max": [...], "labels": [...] }
 ```
 
-A contiguous hyperrectangle; the result is an n-D array with the same coordinate frame as the source.
+A contiguous hyperrectangle; the result is an n-D array with the same coordinate frame as the source. A `box` is exactly an `IndexDomain` (the input domain of §4.1) paired with identity output, so it accepts the **same bound forms** as a `transform`'s input domain — including infinity sentinels and the `[n]`-bracket implicit form. (`slice`, by contrast, takes plain integer `start`/`stop`/`step` only.)
 
-- `inclusive_min` — array of n integers (explicit lower bounds). MUST be omitted only when `shape` is provided, in which case it defaults to all zeros.
-- Upper bound — exactly one of `exclusive_max`, `inclusive_max`, or `shape` (same mutual-exclusion rule as §4.1; reject with `multiple_upper_bounds`).
+- `inclusive_min` — array of n bounds, each an integer, `"-inf"`, or one of those wrapped in a single-element array (implicit). MUST be omitted only when `shape` is provided, in which case it defaults to all explicit zeros.
+- Upper bound — exactly one of `exclusive_max`, `inclusive_max`, or `shape`, using the same integer / sentinel / bracket convention (same mutual-exclusion rule as §4.1; reject with `multiple_upper_bounds`).
 - `labels` — optional array of n strings.
-- Implicit bounds (`[n]`-bracket) and infinity sentinels are **not** permitted in `box`; use `transform` for those.
 
 **Desugaring:** `input_rank = n`. `input_inclusive_min` = the box's `inclusive_min`. `input_exclusive_max` = the box's exclusive upper bound (derived from whichever upper-bound field was given). `output[k] = single_input_dimension(input_dimension=k, offset=0, stride=1)` for each k — identity maps, because a pure restriction performs no rearrangement.
 
@@ -186,7 +184,7 @@ Implementations MUST produce exactly one of the following reason codes when reje
 
 | Code                        | Condition                                                                 |
 |-----------------------------|---------------------------------------------------------------------------|
-| `invalid_json`              | The input is not valid JSON or is not a JSON object.                      |
+| `invalid_json`              | The input is not valid JSON, is not a JSON object, lacks a `kind` field, or has fields whose types do not match this specification. |
 | `unknown_kind`              | The `kind` field is present but its value is not a recognized kind string. |
 | `multiple_upper_bounds`     | More than one of `exclusive_max`/`inclusive_max`/`shape` is present in a `transform` or `box`. |
 | `rank_mismatch`             | `input_rank` is present and inconsistent with the lengths of other arrays, or arrays of inconsistent lengths are provided. |
@@ -205,9 +203,11 @@ An implementation is **conformant** if and only if:
 Fixtures have the forms:
 
 ```json
-{ "input": <any ndsq message>, "normalized": <canonical transform> }
+{ "input": <any ndsq message>, "normalized": <canonical transform body, without `kind`> }
 { "input": <any ndsq message>, "error": "<reason-code>" }
 ```
+
+The `normalized` value is the bare canonical transform body of §4.2 (no `kind`).
 
 Three independent implementations passing the same corpus is the primary evidence that this specification is unambiguous and implementable.
 

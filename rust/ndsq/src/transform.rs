@@ -41,6 +41,12 @@ impl Transform {
     /// Produce the canonical form: domain normalized, output explicit (identity
     /// if omitted), all maps default-filled.
     pub fn canonicalize(self) -> Result<Transform, NdsqError> {
+        // Already canonical (e.g. built by a shorthand desugarer via `from_parts`):
+        // the raw `input_*` fields are absent, so re-deriving would discard the
+        // result. Return it unchanged — canonicalize is idempotent on canonical input.
+        if self.canon.is_some() {
+            return Ok(self);
+        }
         // Reuse the shared domain canonicalization by mapping the input_-prefixed
         // fields onto a RawDomain.
         let raw_domain = RawDomain {
@@ -134,5 +140,20 @@ mod tests {
             serde_json::to_value(&once).unwrap(),
             serde_json::to_value(&twice).unwrap()
         );
+    }
+
+    #[test]
+    fn canonicalize_on_already_canonical_is_a_noop() {
+        // Re-canonicalizing an in-memory canonical value (e.g. a shorthand result)
+        // must not discard it. Regression for the `canon`-already-set guard.
+        let once = serde_json::from_str::<Transform>(
+            r#"{ "input_inclusive_min": [0], "input_shape": [5] }"#,
+        )
+        .unwrap()
+        .canonicalize()
+        .unwrap();
+        let before = serde_json::to_value(&once).unwrap();
+        let again = once.canonicalize().unwrap();
+        assert_eq!(before, serde_json::to_value(&again).unwrap());
     }
 }

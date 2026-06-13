@@ -1,5 +1,5 @@
-# Claude Code local logs
-.claude/hooks/.logs/
+# Claude Code local logs (at any depth)
+**/.claude/hooks/.logs/
 
 # Rust
 target/

@@ -640,7 +640,7 @@ fn add_shape(lo: ImplicitValue, sz: ImplicitValue) -> ImplicitValue {
     let value = match (lo.value, sz.value) {
         (IndexValue::Finite(a), IndexValue::Finite(s)) => IndexValue::Finite(a + s),
         (IndexValue::PosInf, _) | (_, IndexValue::PosInf) => IndexValue::PosInf,
-        (IndexValue::NegInf, _) => IndexValue::NegInf,
+        (IndexValue::NegInf, _) | (_, IndexValue::NegInf) => IndexValue::NegInf,
     };
     ImplicitValue { value, implicit: lo.implicit }
 }

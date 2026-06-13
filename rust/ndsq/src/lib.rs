@@ -3,7 +3,8 @@
 //! A `Message` is a `kind`-discriminated union; `normalize` reduces any message
 //! to a canonical `Transform`. Adapts the index model of Google tensorstore.
 //!
-//! The public API is wired up in `shorthand` (Task 9) once every module exists.
+//! Parse a JSON string with [`parse`], then reduce it to a canonical
+//! [`Transform`] with [`normalize`].
 
 mod domain;
 mod error;
@@ -45,8 +46,7 @@ pub fn normalize(message: Message) -> Result<Transform, NdsqError> {
 }
 
 /// Parse a JSON string into a `Message`, dispatching on the `kind` discriminator.
-/// This is the final version; `unknown_kind` and missing-`kind` handling are
-/// complete here (Task 12 only adds regression tests).
+/// Unknown `kind` values yield `unknown_kind`; a missing `kind` yields `invalid_json`.
 pub fn parse(json: &str) -> Result<Message, NdsqError> {
     use serde_json::{from_value, Value};
     let value: Value = serde_json::from_str(json).map_err(NdsqError::from_serde)?;

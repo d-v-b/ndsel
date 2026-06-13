@@ -3,5 +3,8 @@
   { "name": "error/negative-step", "input": { "kind": "slice", "start": [9], "stop": [0], "step": [-2] }, "error": "negative_step_unsupported" },
   { "name": "error/multiple-upper-bounds", "input": { "kind": "box", "shape": [3], "exclusive_max": [3] }, "error": "multiple_upper_bounds" },
   { "name": "error/rank-mismatch", "input": { "kind": "slice", "start": [0, 0], "stop": [4] }, "error": "rank_mismatch" },
-  { "name": "error/unknown-kind", "input": { "kind": "bogus" }, "error": "unknown_kind" }
+  { "name": "error/unknown-kind", "input": { "kind": "bogus" }, "error": "unknown_kind" },
+  { "name": "error/transform-multiple-upper-bounds", "input": { "kind": "transform", "input_shape": [3], "input_exclusive_max": [3] }, "error": "multiple_upper_bounds" },
+  { "name": "error/transform-rank-mismatch", "input": { "kind": "transform", "input_rank": 2, "input_inclusive_min": [0] }, "error": "rank_mismatch" },
+  { "name": "error/missing-kind", "input": { "coords": [1, 2] }, "error": "invalid_json" }
 ]
