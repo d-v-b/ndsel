@@ -1,0 +1,21 @@
+[
+  {
+    "name": "point/2d",
+    "input": { "kind": "point", "coords": [4, 7] },
+    "normalized": {
+      "input_rank": 0,
+      "input_inclusive_min": [],
+      "input_exclusive_max": [],
+      "input_labels": [],
+      "output": [ { "offset": 4 }, { "offset": 7 } ]
+    }
+  },
+  {
+    "name": "point/scalar-0d",
+    "input": { "kind": "point", "coords": [] },
+    "normalized": {
+      "input_rank": 0, "input_inclusive_min": [], "input_exclusive_max": [],
+      "input_labels": [], "output": []
+    }
+  }
+]

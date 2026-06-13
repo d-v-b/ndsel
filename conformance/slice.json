@@ -1,0 +1,29 @@
+[
+  {
+    "name": "slice/unit-step-preserves-frame",
+    "input": { "kind": "slice", "start": [5], "stop": [10] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [5], "input_exclusive_max": [10],
+      "input_labels": [""],
+      "output": [ { "offset": 0, "stride": 1, "input_dimension": 0 } ]
+    }
+  },
+  {
+    "name": "slice/divisible-stride",
+    "input": { "kind": "slice", "start": [4], "stop": [10], "step": [2] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [2], "input_exclusive_max": [5],
+      "input_labels": [""],
+      "output": [ { "offset": 0, "stride": 2, "input_dimension": 0 } ]
+    }
+  },
+  {
+    "name": "slice/nondivisible-stride-phase-offset",
+    "input": { "kind": "slice", "start": [5], "stop": [10], "step": [2] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [2], "input_exclusive_max": [5],
+      "input_labels": [""],
+      "output": [ { "offset": 1, "stride": 2, "input_dimension": 0 } ]
+    }
+  }
+]
