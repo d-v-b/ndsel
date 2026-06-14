@@ -69,5 +69,22 @@ def desugar_slice(msg: dict) -> Transform:
     return Transform(domain=domain, output=output)
 
 
-def desugar_points(msg: dict) -> Transform:  # implemented in Task 10
-    raise NotImplementedError("desugar_points — Task 10")
+def desugar_points(msg: dict) -> Transform:
+    coords = msg["coords"]
+    m = len(coords)
+    n = len(coords[0]) if coords else 0
+    for point in coords:
+        if len(point) != n:
+            raise NdsqError(Reason.RANK_MISMATCH, "all points must have equal dimensionality")
+
+    domain = Domain(
+        rank=1,
+        inclusive_min=[ImplicitValue.explicit(0)],
+        exclusive_max=[ImplicitValue.explicit(m)],
+        labels=[""],
+    )
+    output: list = []
+    for k in range(n):
+        column = [coords[i][k] for i in range(m)]
+        output.append(IndexArrayMap(offset=0, stride=1, index_array=column, bounds=("-inf", "+inf")))
+    return Transform(domain=domain, output=output)
