@@ -1,0 +1,43 @@
+"""The canonical core: a Transform (domain + explicit output maps)."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .domain import Domain, canonicalize_domain
+from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
+
+
+@dataclass
+class Transform:
+    """The canonical core. Serialize with `to_dict()` (the bare transform body, no `kind`)."""
+
+    domain: Domain
+    output: list[OutputMap]
+
+    def to_dict(self) -> dict:
+        body = self.domain.to_json_fields()
+        body["output"] = [output_map_to_json(m) for m in self.output]
+        return body
+
+
+def identity_output(rank: int) -> list[OutputMap]:
+    return [SingleInputDimension(offset=0, stride=1, input_dimension=k) for k in range(rank)]
+
+
+def canonicalize_transform(msg: dict) -> Transform:
+    """Canonicalize a `transform` message body (uses the input_-prefixed field names)."""
+    domain = canonicalize_domain(
+        rank=msg.get("input_rank"),
+        inclusive_min=msg.get("input_inclusive_min"),
+        exclusive_max=msg.get("input_exclusive_max"),
+        inclusive_max=msg.get("input_inclusive_max"),
+        shape=msg.get("input_shape"),
+        labels=msg.get("input_labels"),
+    )
+    raw_output = msg.get("output")
+    if raw_output is not None:
+        output = [canonicalize_output_map(m) for m in raw_output]
+    else:
+        output = identity_output(domain.rank)
+    return Transform(domain=domain, output=output)
