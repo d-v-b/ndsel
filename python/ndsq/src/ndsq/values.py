@@ -22,6 +22,36 @@ def parse_index_value(raw: object) -> IndexValue:
     raise NdsqError(Reason.INVALID_JSON, f"invalid index value: {raw!r}")
 
 
+def require_int(raw: object, what: str) -> int:
+    """Validate that a JSON value is a plain integer (rejecting bool and non-ints)."""
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an integer, got {raw!r}")
+    return raw
+
+
+def require_int_list(raw: object, what: str) -> list[int]:
+    """Validate that a JSON value is an array of plain integers."""
+    if not isinstance(raw, list):
+        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an array of integers, got {raw!r}")
+    return [require_int(v, f"{what}[{i}]") for i, v in enumerate(raw)]
+
+
+def require_list(raw: object, what: str) -> list:
+    """Validate that a JSON value is an array (element types checked by the caller)."""
+    if not isinstance(raw, list):
+        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an array, got {raw!r}")
+    return raw
+
+
+def require_str_list(raw: object, what: str) -> list[str]:
+    """Validate that a JSON value is an array of strings."""
+    items = require_list(raw, what)
+    for i, v in enumerate(items):
+        if not isinstance(v, str):
+            raise NdsqError(Reason.INVALID_JSON, f"{what}[{i}] must be a string, got {v!r}")
+    return items
+
+
 @dataclass(frozen=True)
 class ImplicitValue:
     """An index bound plus an explicit/implicit flag.

@@ -42,7 +42,13 @@ _BUILDERS = (Point, Box, Slice, Points)
 
 
 def parse(text: str) -> Message:
-    """Parse a JSON string into a validated Message (dispatching on `kind`)."""
+    """Parse a JSON string and validate the `kind` discriminator.
+
+    Raises ``NdsqError(invalid_json)`` for non-JSON, non-object, or missing-`kind`
+    input, and ``NdsqError(unknown_kind)`` for an unrecognized kind. Deeper
+    structural validation of the message body (field types, required fields)
+    happens in `normalize`.
+    """
     try:
         obj = json.loads(text)
     except (json.JSONDecodeError, TypeError) as exc:

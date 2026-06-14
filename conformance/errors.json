@@ -6,5 +6,10 @@
   { "name": "error/unknown-kind", "input": { "kind": "bogus" }, "error": "unknown_kind" },
   { "name": "error/transform-multiple-upper-bounds", "input": { "kind": "transform", "input_shape": [3], "input_exclusive_max": [3] }, "error": "multiple_upper_bounds" },
   { "name": "error/transform-rank-mismatch", "input": { "kind": "transform", "input_rank": 2, "input_inclusive_min": [0] }, "error": "rank_mismatch" },
-  { "name": "error/missing-kind", "input": { "coords": [1, 2] }, "error": "invalid_json" }
+  { "name": "error/missing-kind", "input": { "coords": [1, 2] }, "error": "invalid_json" },
+  { "name": "error/point-missing-coords", "input": { "kind": "point" }, "error": "invalid_json" },
+  { "name": "error/point-bool-coord", "input": { "kind": "point", "coords": [true] }, "error": "invalid_json" },
+  { "name": "error/slice-missing-stop", "input": { "kind": "slice", "start": [0] }, "error": "invalid_json" },
+  { "name": "error/box-non-list-bound", "input": { "kind": "box", "inclusive_min": 5 }, "error": "invalid_json" },
+  { "name": "error/points-bool-coord", "input": { "kind": "points", "coords": [[true]] }, "error": "invalid_json" }
 ]

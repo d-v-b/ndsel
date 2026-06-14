@@ -6,11 +6,11 @@ from .domain import Domain, canonicalize_domain
 from .errors import NdsqError, Reason
 from .output import ConstantMap, IndexArrayMap, SingleInputDimension
 from .transform import Transform
-from .values import ImplicitValue
+from .values import ImplicitValue, require_int_list, require_list, require_str_list
 
 
 def desugar_point(msg: dict) -> Transform:
-    coords = msg["coords"]
+    coords = require_int_list(msg.get("coords"), "point.coords")
     domain = Domain(rank=0, inclusive_min=[], exclusive_max=[], labels=[])
     output = [ConstantMap(offset=c) for c in coords]
     return Transform(domain=domain, output=output)
@@ -34,19 +34,25 @@ def _ceil_div(p: int, q: int) -> int:
 
 
 def desugar_slice(msg: dict) -> Transform:
-    start = msg["start"]
-    stop = msg["stop"]
+    start = require_int_list(msg.get("start"), "slice.start")
+    stop = require_int_list(msg.get("stop"), "slice.stop")
     rank = len(start)
     if len(stop) != rank:
         raise NdsqError(Reason.RANK_MISMATCH, "start and stop must have equal length")
-    step = msg.get("step")
-    if step is None:
+    raw_step = msg.get("step")
+    if raw_step is None:
         step = [1] * rank
-    elif len(step) != rank:
-        raise NdsqError(Reason.RANK_MISMATCH, "step length must match start/stop")
-    labels = msg.get("labels")
-    if labels is not None and len(labels) != rank:
-        raise NdsqError(Reason.RANK_MISMATCH, "labels length must match start/stop")
+    else:
+        step = require_int_list(raw_step, "slice.step")
+        if len(step) != rank:
+            raise NdsqError(Reason.RANK_MISMATCH, "step length must match start/stop")
+    raw_labels = msg.get("labels")
+    if raw_labels is None:
+        labels = None
+    else:
+        labels = require_str_list(raw_labels, "slice.labels")
+        if len(labels) != rank:
+            raise NdsqError(Reason.RANK_MISMATCH, "labels length must match start/stop")
 
     inclusive_min: list[ImplicitValue] = []
     exclusive_max: list[ImplicitValue] = []
@@ -70,7 +76,8 @@ def desugar_slice(msg: dict) -> Transform:
 
 
 def desugar_points(msg: dict) -> Transform:
-    coords = msg["coords"]
+    raw_coords = require_list(msg.get("coords"), "points.coords")
+    coords = [require_int_list(p, f"points.coords[{i}]") for i, p in enumerate(raw_coords)]
     m = len(coords)
     n = len(coords[0]) if coords else 0
     for point in coords:

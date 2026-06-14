@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
 from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
+from .values import require_list
 
 
 @dataclass
@@ -37,7 +38,7 @@ def canonicalize_transform(msg: dict) -> Transform:
     )
     raw_output = msg.get("output")
     if raw_output is not None:
-        output = [canonicalize_output_map(m) for m in raw_output]
+        output = [canonicalize_output_map(m) for m in require_list(raw_output, "output")]
     else:
         output = identity_output(domain.rank)
     return Transform(domain=domain, output=output)

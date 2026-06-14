@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .errors import NdsqError, Reason
-from .values import ImplicitValue
+from .values import ImplicitValue, require_int, require_list, require_str_list
 
 
 @dataclass
@@ -51,10 +51,21 @@ def canonicalize_domain(
     labels: list | None = None,
 ) -> Domain:
     """Reduce raw JSON-level domain fields to a canonical Domain."""
-    imin = [ImplicitValue.from_json(b) for b in inclusive_min] if inclusive_min is not None else None
-    emax = [ImplicitValue.from_json(b) for b in exclusive_max] if exclusive_max is not None else None
-    incmax = [ImplicitValue.from_json(b) for b in inclusive_max] if inclusive_max is not None else None
-    shp = [ImplicitValue.from_json(b) for b in shape] if shape is not None else None
+
+    def _bounds(raw: object | None, name: str) -> list[ImplicitValue] | None:
+        if raw is None:
+            return None
+        return [ImplicitValue.from_json(b) for b in require_list(raw, name)]
+
+    imin = _bounds(inclusive_min, "inclusive_min")
+    emax = _bounds(exclusive_max, "exclusive_max")
+    incmax = _bounds(inclusive_max, "inclusive_max")
+    shp = _bounds(shape, "shape")
+    labels = require_str_list(labels, "labels") if labels is not None else None
+    if rank is not None:
+        rank = require_int(rank, "rank")
+        if rank < 0:
+            raise NdsqError(Reason.INVALID_JSON, f"rank must be non-negative, got {rank}")
 
     upper_count = (emax is not None) + (incmax is not None) + (shp is not None)
     if upper_count > 1:
