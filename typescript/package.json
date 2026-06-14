@@ -1,0 +1,18 @@
+{
+  "name": "ndsq",
+  "version": "0.1.0",
+  "description": "JSON-serializable n-dimensional spatial queries (TypeScript implementation)",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=23.6" },
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "node --test test/",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "ajv": "^8.17",
+    "typescript": "^5.7"
+  }
+}
