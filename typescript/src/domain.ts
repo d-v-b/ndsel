@@ -19,6 +19,13 @@ export interface DomainFields {
   input_labels: string[];
 }
 
+/** Extended-integer order: `-inf <= x <= +inf`; finite values compared numerically. */
+function boundLe(lo: IndexValue, hi: IndexValue): boolean {
+  if (lo === "-inf" || hi === "+inf") return true;
+  if (lo === "+inf" || hi === "-inf") return false;
+  return toBig(lo) <= toBig(hi);
+}
+
 function bumpInclusiveToExclusive(b: ParsedBound): ParsedBound {
   const v = b.value;
   const value: IndexValue = v === "-inf" || v === "+inf" ? v : demote(toBig(v) + 1n);
@@ -84,6 +91,12 @@ export function canonicalizeDomain(fields: RawDomainFields): DomainFields {
   else if (incmax !== null) exclusive = incmax.map(bumpInclusiveToExclusive);
   else if (shp !== null) exclusive = iminFinal.map((lo, i) => addShape(lo, shp[i]));
   else exclusive = Array.from({ length: r }, () => ({ value: "+inf", implicit: true }) as ParsedBound);
+
+  for (let k = 0; k < r; k++) {
+    if (!boundLe(iminFinal[k].value, exclusive[k].value)) {
+      throw new NdselError(Reason.BoundsOutOfOrder, "inclusive_min must not exceed exclusive_max");
+    }
+  }
 
   return {
     input_rank: r,

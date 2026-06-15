@@ -45,11 +45,26 @@ class IndexArrayMap:
 
 OutputMap = ConstantMap | SingleInputDimension | IndexArrayMap
 
+_OUTPUT_MAP_FIELDS = frozenset(
+    {"offset", "stride", "input_dimension", "index_array", "index_array_bounds"}
+)
+
 
 def canonicalize_output_map(raw: object) -> OutputMap:
     """Default-fill and discriminate a raw output-map object."""
     if not isinstance(raw, dict):
         raise NdselError(Reason.INVALID_JSON, f"output map must be an object, got {raw!r}")
+    extra = set(raw) - _OUTPUT_MAP_FIELDS
+    if extra:
+        raise NdselError(
+            Reason.UNKNOWN_FIELD,
+            f"unrecognized output map field(s): {', '.join(sorted(map(str, extra)))}",
+        )
+    if "index_array" in raw and "input_dimension" in raw:
+        raise NdselError(
+            Reason.OUTPUT_MAP_CONFLICT,
+            "output map must not carry both input_dimension and index_array",
+        )
     offset = require_int(raw["offset"], "output.offset") if "offset" in raw else 0
     stride = require_int(raw["stride"], "output.stride") if "stride" in raw else 1
     if "index_array" in raw:

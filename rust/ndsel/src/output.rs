@@ -2,6 +2,7 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::error::{NdselError, Reason};
 use crate::value::IndexValue;
 
 /// One output index map (canonical form).
@@ -28,10 +29,16 @@ pub struct RawOutputMap {
 }
 
 impl RawOutputMap {
-    pub fn canonicalize(self) -> OutputMap {
+    pub fn canonicalize(self) -> Result<OutputMap, NdselError> {
+        if self.index_array.is_some() && self.input_dimension.is_some() {
+            return Err(NdselError::new(
+                Reason::OutputMapConflict,
+                "output map must not carry both input_dimension and index_array",
+            ));
+        }
         let offset = self.offset.unwrap_or(0);
         let stride = self.stride.unwrap_or(1);
-        if let Some(arr) = self.index_array {
+        let map = if let Some(arr) = self.index_array {
             let bounds = self
                 .index_array_bounds
                 .unwrap_or((IndexValue::NegInf, IndexValue::PosInf));
@@ -40,7 +47,8 @@ impl RawOutputMap {
             OutputMap::SingleInputDimension { offset, stride, input_dimension: dim }
         } else {
             OutputMap::Constant { offset }
-        }
+        };
+        Ok(map)
     }
 }
 
@@ -78,7 +86,7 @@ mod tests {
     #[test]
     fn constant_map_carries_only_offset() {
         let m: RawOutputMap = serde_json::from_str(r#"{ "offset": 3 }"#).unwrap();
-        let canon = m.canonicalize();
+        let canon = m.canonicalize().unwrap();
         assert_eq!(canon, OutputMap::Constant { offset: 3 });
         assert_eq!(serde_json::to_value(&canon).unwrap(), serde_json::json!({ "offset": 3 }));
     }
@@ -86,7 +94,7 @@ mod tests {
     #[test]
     fn single_input_dimension_fills_defaults() {
         let m: RawOutputMap = serde_json::from_str(r#"{ "input_dimension": 2 }"#).unwrap();
-        let canon = m.canonicalize();
+        let canon = m.canonicalize().unwrap();
         assert_eq!(
             serde_json::to_value(&canon).unwrap(),
             serde_json::json!({ "offset": 0, "stride": 1, "input_dimension": 2 })
@@ -97,7 +105,7 @@ mod tests {
     fn index_array_fills_offset_stride_and_bounds() {
         let m: RawOutputMap =
             serde_json::from_str(r#"{ "index_array": [1, 2, 3] }"#).unwrap();
-        let canon = m.canonicalize();
+        let canon = m.canonicalize().unwrap();
         assert_eq!(
             serde_json::to_value(&canon).unwrap(),
             serde_json::json!({

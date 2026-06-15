@@ -59,7 +59,10 @@ impl Transform {
         };
         let domain = raw_domain.into_domain()?;
         let output = match self.output {
-            Some(maps) => maps.into_iter().map(RawOutputMap::canonicalize).collect(),
+            Some(maps) => maps
+                .into_iter()
+                .map(RawOutputMap::canonicalize)
+                .collect::<Result<Vec<_>, _>>()?,
             None => identity_output(&domain),
         };
         Ok(from_parts(domain, output))

@@ -82,18 +82,70 @@ pub fn parse(json: &str) -> Result<Message, NdselError> {
         .and_then(|k| k.as_str())
         .ok_or_else(|| NdselError::new(Reason::InvalidJson, "missing string `kind`"))?
         .to_owned();
+    if !matches!(kind.as_str(), "point" | "box" | "slice" | "points" | "transform") {
+        return Err(NdselError::new(Reason::UnknownKind, format!("unknown kind: {kind}")));
+    }
+    // Strict: reject unrecognized members (mirrors the schema's
+    // additionalProperties:false), so typos fail loudly and the canonical body
+    // stays a clean TensorStore IndexTransform. Output maps carry their own
+    // closed field set, checked here while the raw keys are still available.
+    if let Value::Object(map) = &value {
+        for key in map.keys() {
+            if !allowed_fields(&kind).contains(&key.as_str()) {
+                return Err(NdselError::new(Reason::UnknownField, format!("unrecognized field: {key}")));
+            }
+        }
+        if kind == "transform" {
+            if let Some(Value::Array(maps)) = map.get("output") {
+                for entry in maps {
+                    if let Value::Object(m) = entry {
+                        for key in m.keys() {
+                            if !OUTPUT_MAP_FIELDS.contains(&key.as_str()) {
+                                return Err(NdselError::new(
+                                    Reason::UnknownField,
+                                    format!("unrecognized output map field: {key}"),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     let msg = match kind.as_str() {
         "point" => Message::Point(from_value(value).map_err(NdselError::from_serde)?),
         "box" => Message::Box(from_value(value).map_err(NdselError::from_serde)?),
         "slice" => Message::Slice(from_value(value).map_err(NdselError::from_serde)?),
         "points" => Message::Points(from_value(value).map_err(NdselError::from_serde)?),
         "transform" => Message::Transform(from_value(value).map_err(NdselError::from_serde)?),
-        other => {
-            return Err(NdselError::new(Reason::UnknownKind, format!("unknown kind: {other}")));
-        }
+        _ => unreachable!("kind validated above"),
     };
     Ok(msg)
 }
+
+/// The complete set of recognized members for each message kind (`kind` included).
+fn allowed_fields(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "point" | "points" => &["kind", "coords"],
+        "box" => &["kind", "inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"],
+        "slice" => &["kind", "start", "stop", "step", "labels"],
+        "transform" => &[
+            "kind",
+            "input_rank",
+            "input_inclusive_min",
+            "input_exclusive_max",
+            "input_inclusive_max",
+            "input_shape",
+            "input_labels",
+            "output",
+        ],
+        _ => &[],
+    }
+}
+
+/// Recognized members of an output map object.
+const OUTPUT_MAP_FIELDS: &[&str] =
+    &["offset", "stride", "input_dimension", "index_array", "index_array_bounds"];
 
 #[cfg(test)]
 mod tests {

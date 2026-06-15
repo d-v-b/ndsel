@@ -6,8 +6,11 @@ pub enum Reason {
     StepZero,
     NegativeStepUnsupported,
     MultipleUpperBounds,
+    BoundsOutOfOrder,
+    OutputMapConflict,
     RankMismatch,
     UnknownKind,
+    UnknownField,
     InvalidJson,
 }
 
@@ -18,8 +21,11 @@ impl Reason {
             Reason::StepZero => "step_zero",
             Reason::NegativeStepUnsupported => "negative_step_unsupported",
             Reason::MultipleUpperBounds => "multiple_upper_bounds",
+            Reason::BoundsOutOfOrder => "bounds_out_of_order",
+            Reason::OutputMapConflict => "output_map_conflict",
             Reason::RankMismatch => "rank_mismatch",
             Reason::UnknownKind => "unknown_kind",
+            Reason::UnknownField => "unknown_field",
             Reason::InvalidJson => "invalid_json",
         }
     }

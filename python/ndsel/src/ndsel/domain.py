@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from .errors import NdselError, Reason
 from .messages import DomainFields
-from .values import MaybeImplicitValue, require_int, require_list, require_str_list
+from .values import IndexValue, MaybeImplicitValue, require_int, require_list, require_str_list
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -30,6 +30,15 @@ class Domain:
 def _bump_inclusive_to_exclusive(v: MaybeImplicitValue) -> MaybeImplicitValue:
     value = v.value + 1 if isinstance(v.value, int) else v.value
     return MaybeImplicitValue(value=value, implicit=v.implicit)
+
+
+def _bound_le(lo: IndexValue, hi: IndexValue) -> bool:
+    """Extended-integer order: -inf <= x <= +inf; finite values compared numerically."""
+    if lo == "-inf" or hi == "+inf":
+        return True
+    if lo == "+inf" or hi == "-inf":
+        return False
+    return lo <= hi  # both finite ints
 
 
 def _add_shape(lo: MaybeImplicitValue, sz: MaybeImplicitValue) -> MaybeImplicitValue:
@@ -98,6 +107,13 @@ def canonicalize_domain(
         exclusive = [_add_shape(lo, sz) for lo, sz in zip(imin, shp)]
     else:
         exclusive = [MaybeImplicitValue(value="+inf", implicit=True) for _ in range(r)]
+
+    for lo, hi in zip(imin, exclusive):
+        if not _bound_le(lo.value, hi.value):
+            raise NdselError(
+                Reason.BOUNDS_OUT_OF_ORDER,
+                f"inclusive_min {lo.value} exceeds exclusive_max {hi.value}",
+            )
 
     out_labels = labels if labels is not None else ["" for _ in range(r)]
     return Domain(rank=r, inclusive_min=imin, exclusive_max=exclusive, labels=out_labels)

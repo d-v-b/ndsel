@@ -125,6 +125,10 @@ These named types are referenced by the field tables in [section 4](#4-the-canon
 
 A value whose JSON type does not match the type required by a field MUST be rejected with `invalid_json` ([section 6](#6-error-codes)).
 
+### 3.7 Strict membership
+
+A message object MUST contain only the members defined for its `kind` (the fields of its [section 4](#4-the-canonical-core-kind-transform)/[section 5](#5-shorthands-and-their-desugarings) table, plus `kind`), and an `output-map` object only the members of [section 4.2](#42-output-maps). Any other member is rejected with `unknown_field` — so a misspelled field fails loudly rather than being silently ignored. This matches the JSON Schema's `additionalProperties: false` and keeps a normalized `transform` loadable by TensorStore's strict JSON binding ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)). A future version that adds fields will do so under an explicit extension mechanism rather than by relaxing this rule.
+
 ---
 
 ## 4. The canonical core: `kind: "transform"`
@@ -146,9 +150,11 @@ A `transform` message is a JSON object. All members except `kind` follow TensorS
 
 † **Upper bound.** `input_exclusive_max`, `input_inclusive_max`, and `input_shape` are mutually exclusive: **at most one** may appear. Providing two or more → `multiple_upper_bounds`. If **none** is provided, the upper bound defaults to an **implicit `+inf`** in every dimension.
 
+**Domain validity.** After the upper bound is resolved, every dimension MUST satisfy `inclusive_min ≤ exclusive_max` in the extended-integer order (`-inf < n < +inf`). An **empty** interval, where the two are equal, is valid (a zero-length dimension); an **inverted** one — `inclusive_min > exclusive_max`, including the interval produced by a negative `shape` — is rejected with `bounds_out_of_order`. This mirrors TensorStore's `IndexInterval`, whose size is non-negative.
+
 ### 4.2 Output maps
 
-An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches TensorStore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
+An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches TensorStore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`; one that does is rejected with `output_map_conflict`.
 
 The kind is selected by this rule, in order:
 
@@ -278,7 +284,10 @@ An implementation MUST reject an invalid input with exactly one of the following
 |------|-----------|
 | `invalid_json` | Not valid JSON, not a JSON object, lacks a string `kind`, or has a field whose JSON type does not match this specification (e.g. a missing required field, a boolean where an `integer` is required, a non-array bound). |
 | `unknown_kind` | `kind` is a string but not one of `point`/`box`/`slice`/`points`/`transform` (including the empty string). |
+| `unknown_field` | A message or output map contains a member not defined for its kind (see [section 3.7](#37-strict-membership)). |
 | `multiple_upper_bounds` | More than one of `exclusive_max`/`inclusive_max`/`shape` (or their `input_`-prefixed forms) is present. |
+| `bounds_out_of_order` | A dimension's `inclusive_min` exceeds its `exclusive_max` — including the inverted interval produced by a negative `shape`. An *empty* interval (`inclusive_min == exclusive_max`) is valid. |
+| `output_map_conflict` | An output map carries both `input_dimension` and `index_array` ([section 4.2](#42-output-maps)). |
 | `rank_mismatch` | `input_rank` is present and inconsistent with an array length, or arrays of inconsistent lengths are provided (including ragged `points`). |
 | `step_zero` | A `slice` `step` element is `0`. |
 | `negative_step_unsupported` | A `slice` `step` element is negative (reserved; see [section 5.3](#53-slice)). |

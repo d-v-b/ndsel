@@ -11,8 +11,11 @@ class Reason(str, Enum):
     STEP_ZERO = "step_zero"
     NEGATIVE_STEP_UNSUPPORTED = "negative_step_unsupported"
     MULTIPLE_UPPER_BOUNDS = "multiple_upper_bounds"
+    BOUNDS_OUT_OF_ORDER = "bounds_out_of_order"
+    OUTPUT_MAP_CONFLICT = "output_map_conflict"
     RANK_MISMATCH = "rank_mismatch"
     UNKNOWN_KIND = "unknown_kind"
+    UNKNOWN_FIELD = "unknown_field"
     INVALID_JSON = "invalid_json"
 
 

@@ -3,8 +3,11 @@ export const Reason = {
   StepZero: "step_zero",
   NegativeStepUnsupported: "negative_step_unsupported",
   MultipleUpperBounds: "multiple_upper_bounds",
+  BoundsOutOfOrder: "bounds_out_of_order",
+  OutputMapConflict: "output_map_conflict",
   RankMismatch: "rank_mismatch",
   UnknownKind: "unknown_kind",
+  UnknownField: "unknown_field",
   InvalidJson: "invalid_json",
 } as const;
 

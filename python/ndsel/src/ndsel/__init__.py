@@ -41,6 +41,25 @@ __all__ = [
 _KNOWN_KINDS = {"point", "box", "slice", "points", "transform"}
 _BUILDERS = (Point, Box, Slice, Points)
 
+# The complete set of recognized members for each message kind (`kind` included).
+# Strict: any other member is rejected with `unknown_field`.
+_ALLOWED_FIELDS = {
+    "point": {"kind", "coords"},
+    "box": {"kind", "inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"},
+    "slice": {"kind", "start", "stop", "step", "labels"},
+    "points": {"kind", "coords"},
+    "transform": {
+        "kind",
+        "input_rank",
+        "input_inclusive_min",
+        "input_exclusive_max",
+        "input_inclusive_max",
+        "input_shape",
+        "input_labels",
+        "output",
+    },
+}
+
 
 def parse(text: str) -> Message:
     """Parse a JSON string and validate the `kind` discriminator.
@@ -61,6 +80,12 @@ def parse(text: str) -> Message:
         raise NdselError(Reason.INVALID_JSON, "missing string `kind`")
     if kind not in _KNOWN_KINDS:
         raise NdselError(Reason.UNKNOWN_KIND, f"unknown kind: {kind}")
+    extra = set(obj) - _ALLOWED_FIELDS[kind]
+    if extra:
+        raise NdselError(
+            Reason.UNKNOWN_FIELD,
+            f"unrecognized field(s) for kind {kind}: {', '.join(sorted(map(str, extra)))}",
+        )
     return obj  # type: ignore[return-value]
 
 

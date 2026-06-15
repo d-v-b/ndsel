@@ -84,9 +84,28 @@ impl RawDomain {
             vec![ImplicitValue { value: IndexValue::PosInf, implicit: true }; rank]
         };
 
+        for (lo, hi) in inclusive_min.iter().zip(exclusive_max.iter()) {
+            if !min_le_max(lo.value, hi.value) {
+                return Err(NdselError::new(
+                    Reason::BoundsOutOfOrder,
+                    "inclusive_min must not exceed exclusive_max",
+                ));
+            }
+        }
+
         let labels = self.labels.unwrap_or_else(|| vec![String::new(); rank]);
 
         Ok(Domain { rank, inclusive_min, exclusive_max, labels })
+    }
+}
+
+/// Extended-integer order: `-inf <= x <= +inf`; finite values compared numerically.
+fn min_le_max(min: IndexValue, max: IndexValue) -> bool {
+    use IndexValue::{Finite, NegInf, PosInf};
+    match (min, max) {
+        (NegInf, _) | (_, PosInf) => true,
+        (PosInf, _) | (_, NegInf) => false,
+        (Finite(a), Finite(b)) => a <= b,
     }
 }
 
