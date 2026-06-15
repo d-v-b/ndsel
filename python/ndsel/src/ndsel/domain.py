@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .errors import NdsqError, Reason
+from .messages import DomainFields
 from .values import ImplicitValue, require_int, require_list, require_str_list
 
 
@@ -17,7 +18,7 @@ class Domain:
     exclusive_max: list[ImplicitValue]
     labels: list[str]
 
-    def to_json_fields(self) -> dict[str, object]:
+    def to_json_fields(self) -> DomainFields:
         return {
             "input_rank": self.rank,
             "input_inclusive_min": [v.to_json() for v in self.inclusive_min],

@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
+from .messages import NormalizedTransform
 from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
 from .values import require_list
 
@@ -17,10 +18,11 @@ class Transform:
     domain: Domain
     output: Sequence[OutputMap]
 
-    def to_dict(self) -> dict[str, object]:
-        body = self.domain.to_json_fields()
-        body["output"] = [output_map_to_json(m) for m in self.output]
-        return body
+    def to_dict(self) -> NormalizedTransform:
+        return {
+            **self.domain.to_json_fields(),
+            "output": [output_map_to_json(m) for m in self.output],
+        }
 
 
 def identity_output(rank: int) -> list[OutputMap]:

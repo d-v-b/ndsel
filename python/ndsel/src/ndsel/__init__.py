@@ -11,7 +11,7 @@ import json
 from .builders import Box, Point, Points, Slice
 from .domain import Domain
 from .errors import NdsqError, Reason
-from .messages import Message
+from .messages import Message, NormalizedTransform
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .shorthand import desugar_box, desugar_point, desugar_points, desugar_slice
 from .transform import Transform, canonicalize_transform
@@ -29,6 +29,7 @@ __all__ = [
     "ImplicitValue",
     "IndexValue",
     "Message",
+    "NormalizedTransform",
     "Point",
     "Box",
     "Slice",

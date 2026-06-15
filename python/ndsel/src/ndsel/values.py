@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Literal, Union
 
 from .errors import NdsqError, Reason
+from .messages import BoundJson
 
 # A single index coordinate: a finite int, or the infinity sentinels.
 IndexValue = Union[int, Literal["-inf", "+inf"]]
@@ -84,5 +85,5 @@ class ImplicitValue:
             return cls(value=parse_index_value(raw[0]), implicit=True)
         return cls(value=parse_index_value(raw), implicit=False)
 
-    def to_json(self) -> object:
+    def to_json(self) -> BoundJson:
         return [self.value] if self.implicit else self.value

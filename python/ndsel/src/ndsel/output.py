@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from .errors import NdsqError, Reason
+from .messages import OutputMapDict
 from .values import IndexValue, parse_index_value, require_int
 
 
@@ -52,7 +53,7 @@ def canonicalize_output_map(raw: object) -> OutputMap:
     return ConstantMap(offset=offset)
 
 
-def output_map_to_json(m: OutputMap) -> dict[str, object]:
+def output_map_to_json(m: OutputMap) -> OutputMapDict:
     if isinstance(m, ConstantMap):
         return {"offset": m.offset}
     if isinstance(m, SingleInputDimension):

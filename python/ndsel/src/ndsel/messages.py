@@ -56,3 +56,24 @@ class TransformMessage(TypedDict):
 
 
 Message = Union[PointMessage, BoxMessage, SliceMessage, PointsMessage, TransformMessage]
+
+
+# --- Normalized (output) shapes ---------------------------------------------
+# Unlike the input messages above (loose, with NotRequired fields and a `kind`
+# discriminator), these describe the *canonical* body that `normalize` emits:
+# every field is present and there is no `kind` (spec §4.3).
+
+
+class DomainFields(TypedDict):
+    """The four canonical input-domain fields present in every normalized body."""
+
+    input_rank: int
+    input_inclusive_min: list[BoundJson]
+    input_exclusive_max: list[BoundJson]
+    input_labels: list[str]
+
+
+class NormalizedTransform(DomainFields):
+    """The bare canonical transform body emitted by ``Transform.to_dict`` (no ``kind``)."""
+
+    output: list[OutputMapDict]
