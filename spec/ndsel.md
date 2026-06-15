@@ -14,11 +14,11 @@ Conceptually, every index over an n-dimensional integer grid has two parts:
 1. **The input selection** — *which* points of the source grid are chosen: a contiguous block, a strided lattice, an arbitrary set of points.
 2. **The output arrangement** — *how* the chosen points are laid out in the new result array.
 
-The arrangement is a genuine choice, not a formality. The same points may be kept as an n-D sub-array that preserves their relative positions — what *basic slicing* does (`a[2:5, 1:4]` → a 3×3 block) — or **linearized** into a 1-D list — what *advanced indexing* does (`a[[2,3,4], [1,2,3]]` → the points `(2,1), (3,2), (4,3)` as a length-3 vector). NumPy folds this choice into the indexing style; ndsel states it explicitly. (In the canonical form, these two parts are the transform's **input domain** and **output maps**, §4.)
+The arrangement is a genuine choice, not a formality. The same points may be kept as an n-D sub-array that preserves their relative positions — what *basic slicing* does (`a[2:5, 1:4]` → a 3×3 block) — or **linearized** into a 1-D list — what *advanced indexing* does (`a[[2,3,4], [1,2,3]]` → the points `(2,1), (3,2), (4,3)` as a length-3 vector). NumPy folds this choice into the indexing style; ndsel states it explicitly. (In the canonical form, these two parts are the transform's **input domain** and **output maps**, [section 4](#4-the-canonical-core-kind-transform).)
 
-This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space (§2.2). What a message lays out is the *result*: how the selected points fill the new array.
+This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space ([section 2.2](#22-selected-points-keep-their-source-coordinates)). What a message lays out is the *result*: how the selected points fill the new array.
 
-The canonical representation is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
+The canonical representation is the `transform` kind ([section 4](#4-the-canonical-core-kind-transform)), borrowed from tensorstore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
 
 ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
@@ -32,7 +32,7 @@ To express the same selection compactly at varying cost, ndsel defines a **short
 | `points`    | An arbitrary explicit set of points      | 1-D |
 | `transform` | Anything (the full canonical core)       | any |
 
-Every shorthand MUST have a normative desugaring to `transform` (§5). `transform` is the universal escape hatch: any selection is representable (including the rare cases that also rearrange axes). The shorthands are faithful special cases chosen to cover common selection shapes compactly.
+Every shorthand MUST have a normative desugaring to `transform` ([section 5](#5-shorthands-and-their-desugarings)). `transform` is the universal escape hatch: any selection is representable (including the rare cases that also rearrange axes). The shorthands are faithful special cases chosen to cover common selection shapes compactly.
 
 ### 1.1 A worked example
 
@@ -44,7 +44,7 @@ That intent — selecting source indices 10, 12, 14, 16, 18 — is a strided `sl
 { "kind": "slice", "start": [10], "stop": [20], "step": [2] }
 ```
 
-Normalizing it (§4.3) produces the canonical `transform`: the same selection written in the universal core.
+Normalizing it ([section 4.3](#43-canonical-normalized-form)) produces the canonical `transform`: the same selection written in the universal core.
 
 ```json
 {
@@ -56,7 +56,7 @@ Normalizing it (§4.3) produces the canonical `transform`: the same selection wr
 }
 ```
 
-The five selected points are `{10, 12, 14, 16, 18}`. In the canonical form the result index `i` names the source point `0 + 2·i` over the domain `[5, 10)` — so the points are addressed `5…9` (point 10 sits at `10 / 2 = 5`). Selecting does **not** renumber the result to a fresh `0…4` array: the selected points keep their source coordinates, so the result stays anchored to the source frame (§2.2). A consumer that wants a 0-based result re-bases it explicitly.
+The five selected points are `{10, 12, 14, 16, 18}`. In the canonical form the result index `i` names the source point `0 + 2·i` over the domain `[5, 10)` — so the points are addressed `5…9` (point 10 sits at `10 / 2 = 5`). Selecting does **not** renumber the result to a fresh `0…4` array: the selected points keep their source coordinates, so the result stays anchored to the source frame ([section 2.2](#22-selected-points-keep-their-source-coordinates)). A consumer that wants a 0-based result re-bases it explicitly.
 
 The same array can be addressed with the other shorthands, each compact for its shape:
 
@@ -76,7 +76,7 @@ ndsel **adapts the index model of Google's [tensorstore](https://google.github.i
 
 ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`transform`), so every message carries a `kind` string field. tensorstore's `IndexTransform` is a single type with no such field. This is the **only** structural difference between an ndsel `transform` and a tensorstore `IndexTransform`:
 
-- **ndsel → tensorstore:** the normalized `transform` body (§4.3) is, field-for-field, a tensorstore `IndexTransform` *except* for the `kind` member. Because tensorstore's JSON binding is strict about unrecognized members, **strip `kind`** at the boundary, after which the body loads as an ordinary `IndexTransform`.
+- **ndsel → tensorstore:** the normalized `transform` body ([section 4.3](#43-canonical-normalized-form)) is, field-for-field, a tensorstore `IndexTransform` *except* for the `kind` member. Because tensorstore's JSON binding is strict about unrecognized members, **strip `kind`** at the boundary, after which the body loads as an ordinary `IndexTransform`.
 - **tensorstore → ndsel:** a raw `IndexTransform` has no `kind`; **add `kind: "transform"`** to present it to ndsel's `parse`.
 
 The shorthands (`point`/`box`/`slice`/`points`) are ndsel's own; tensorstore has no JSON encoding for them. They merely desugar to ordinary `transform`s.
@@ -93,7 +93,7 @@ A direct consequence: a `box` — which selects a contiguous block and reorders 
 
 ### 3.1 The `kind` discriminator
 
-Every ndsel message MUST be a JSON object with a string `kind` field. Implementations MUST reject input that is not a JSON object, or that lacks a string `kind`, with reason code `invalid_json`. A `kind` value that is a string but not one of the five recognized kinds (including the empty string) MUST be rejected with `unknown_kind` (§6).
+Every ndsel message MUST be a JSON object with a string `kind` field. Implementations MUST reject input that is not a JSON object, or that lacks a string `kind`, with reason code `invalid_json`. A `kind` value that is a string but not one of the five recognized kinds (including the empty string) MUST be rejected with `unknown_kind` ([section 6](#6-error-codes)).
 
 ### 3.2 Infinity sentinels
 
@@ -101,7 +101,7 @@ The strings `"-inf"` and `"+inf"` (exactly those characters, including the sign)
 
 ### 3.3 Implicit bounds: the `[n]`-bracket convention
 
-A bound wrapped in a single-element JSON array — `[n]`, `["-inf"]`, or `["+inf"]` — denotes an **implicit** bound. It carries the same value as the bare form but signals that the dimension's extent is not fixed by the message; a consumer MAY substitute the actual array extent. A bare value denotes an **explicit** bound. The implicit/explicit distinction is preserved through normalization (§4.3).
+A bound wrapped in a single-element JSON array — `[n]`, `["-inf"]`, or `["+inf"]` — denotes an **implicit** bound. It carries the same value as the bare form but signals that the dimension's extent is not fixed by the message; a consumer MAY substitute the actual array extent. A bare value denotes an **explicit** bound. The implicit/explicit distinction is preserved through normalization ([section 4.3](#43-canonical-normalized-form)).
 
 ### 3.4 Rank
 
@@ -113,17 +113,17 @@ Every coordinate and bound value (excluding the `"-inf"`/`"+inf"` sentinels) MUS
 
 ### 3.6 JSON value types
 
-These named types are referenced by the field tables in §4–§5.
+These named types are referenced by the field tables in [section 4](#4-the-canonical-core-kind-transform)–[section 5](#5-shorthands-and-their-desugarings).
 
 | Type | JSON form |
 |------|-----------|
-| `integer` | A JSON number with no fractional part, in 64-bit signed range (§3.5). A JSON boolean is **not** an `integer`. |
+| `integer` | A JSON number with no fractional part, in 64-bit signed range ([section 3.5](#35-integer-value-range)). A JSON boolean is **not** an `integer`. |
 | `index-value` | An `integer`, or the string `"-inf"` or `"+inf"`. |
-| `bound` | An `index-value` (explicit), or a one-element array `[index-value]` (implicit, §3.3). |
+| `bound` | An `index-value` (explicit), or a one-element array `[index-value]` (implicit, [section 3.3](#33-implicit-bounds-the-n-bracket-convention)). |
 | `integer[]`, `bound[]`, `string[]`, `integer[][]` | JSON arrays of the named element type. |
-| `output-map` | An object as defined in §4.2. |
+| `output-map` | An object as defined in [section 4.2](#42-output-maps). |
 
-A value whose JSON type does not match the type required by a field MUST be rejected with `invalid_json` (§6).
+A value whose JSON type does not match the type required by a field MUST be rejected with `invalid_json` ([section 6](#6-error-codes)).
 
 ---
 
@@ -148,7 +148,7 @@ A `transform` message is a JSON object. All members except `kind` follow tensors
 
 ### 4.2 Output maps
 
-An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches tensorstore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` (§2.1); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
+An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches tensorstore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
 
 The kind is selected by this rule, in order:
 
@@ -178,14 +178,14 @@ Each kind's fields:
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `index_array` | nested array of `integer` | **yes** | Its presence selects this kind. Carried verbatim; see §7 on deferred validation. |
+| `index_array` | nested array of `integer` | **yes** | Its presence selects this kind. Carried verbatim; see [section 7](#7-validation-deferred-in-v1) on deferred validation. |
 | `offset` | `integer` | no | Default `0`. |
 | `stride` | `integer` | no | Default `1`. |
 | `index_array_bounds` | `[index-value, index-value]` | no | `[lo, hi]`, both inclusive; default `["-inf", "+inf"]`. |
 
 ### 4.3 Canonical (normalized) form
 
-`normalize(message) → transform` MUST accept all the redundancies of §4.1–§4.2 and emit exactly one deterministic spelling. The result is the **bare canonical transform body** — the input-domain fields plus the explicit `output`. It does **not** carry a `kind` field (`kind` is a discriminator on *input messages* only; its omission is what makes the body a tensorstore-loadable `IndexTransform`, §2.1). The normalized body MUST satisfy:
+`normalize(message) → transform` MUST accept all the redundancies of [section 4.1](#41-the-transform-message)–[section 4.2](#42-output-maps) and emit exactly one deterministic spelling. The result is the **bare canonical transform body** — the input-domain fields plus the explicit `output`. It does **not** carry a `kind` field (`kind` is a discriminator on *input messages* only; its omission is what makes the body a tensorstore-loadable `IndexTransform`, [section 2.1](#21-the-one-structural-difference-the-kind-discriminator)). The normalized body MUST satisfy:
 
 - `input_rank` present.
 - `input_inclusive_min` present and fully written out (no omission; per-dimension implicit/explicit flags preserved).
@@ -227,9 +227,9 @@ Selects one cell of an n-dimensional source; the result is a 0-D scalar.
 | `shape` | `bound[]` | no † | Size (`min + shape`). |
 | `labels` | `string[]` | no | Per-dimension labels; length `n`. |
 
-† Same upper-bound rule as §4.1: at most one of `exclusive_max`/`inclusive_max`/`shape` (else `multiple_upper_bounds`); if none, defaults to implicit `+inf`.
+† Same upper-bound rule as [section 4.1](#41-the-transform-message): at most one of `exclusive_max`/`inclusive_max`/`shape` (else `multiple_upper_bounds`); if none, defaults to implicit `+inf`.
 
-A `box` is exactly an `IndexDomain` (the input domain of §4.1) paired with identity output, so it accepts the **same bound forms** as a `transform`'s input domain — including infinity sentinels and the `[n]`-bracket implicit form. (`slice`, by contrast, takes plain integers only.) The result has the **same coordinate frame** as the source (§2.2).
+A `box` is exactly an `IndexDomain` (the input domain of [section 4.1](#41-the-transform-message)) paired with identity output, so it accepts the **same bound forms** as a `transform`'s input domain — including infinity sentinels and the `[n]`-bracket implicit form. (`slice`, by contrast, takes plain integers only.) The result has the **same coordinate frame** as the source ([section 2.2](#22-selected-points-keep-their-source-coordinates)).
 
 **Desugaring:** `input_rank = n`; `input_inclusive_min` and `input_exclusive_max` are the box's bounds (the upper bound converted from whichever field was given); `input_labels` as given or all `""`. `output[k] = single_input_dimension(input_dimension = k, offset = 0, stride = 1)` — identity maps, because a pure restriction performs no rearrangement.
 
@@ -255,7 +255,7 @@ A per-dimension regular strided region following Python/NumPy slice conventions 
 - `output[k] = single_input_dimension(input_dimension = k, offset, stride = s)`.
 - Input domain for dimension `k`: `[o, o + m)` (i.e. `input_inclusive_min[k] = o`, `input_exclusive_max[k] = o + m`).
 
-The result domain is `[o, o + m)` in **source** coordinates, **not** re-based to `[0, m)` (§2.2). For a 0-origin result, apply an explicit translation via `transform`.
+The result domain is `[o, o + m)` in **source** coordinates, **not** re-based to `[0, m)` ([section 2.2](#22-selected-points-keep-their-source-coordinates)). For a 0-origin result, apply an explicit translation via `transform`.
 
 ### 5.4 `points`
 
@@ -281,7 +281,7 @@ An implementation MUST reject an invalid input with exactly one of the following
 | `multiple_upper_bounds` | More than one of `exclusive_max`/`inclusive_max`/`shape` (or their `input_`-prefixed forms) is present. |
 | `rank_mismatch` | `input_rank` is present and inconsistent with an array length, or arrays of inconsistent lengths are provided (including ragged `points`). |
 | `step_zero` | A `slice` `step` element is `0`. |
-| `negative_step_unsupported` | A `slice` `step` element is negative (reserved; see §5.3). |
+| `negative_step_unsupported` | A `slice` `step` element is negative (reserved; see [section 5.3](#53-slice)). |
 
 ---
 
@@ -310,7 +310,7 @@ Fixtures have the forms:
 { "input": <any ndsel message>, "error": "<reason-code>" }
 ```
 
-The `normalized` value is the bare canonical transform body of §4.3 (no `kind`). Multiple independent implementations passing the same corpus is the primary evidence that this specification is unambiguous and implementable.
+The `normalized` value is the bare canonical transform body of [section 4.3](#43-canonical-normalized-form) (no `kind`). Multiple independent implementations passing the same corpus is the primary evidence that this specification is unambiguous and implementable.
 
 ---
 
