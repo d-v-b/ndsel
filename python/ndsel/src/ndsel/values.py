@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Literal
 
 from .errors import NdsqError, Reason
 from .messages import BoundJson
 
 # A single index coordinate: a finite int, or the infinity sentinels.
-IndexValue = Union[int, Literal["-inf", "+inf"]]
+IndexValue = int | Literal["-inf", "+inf"]
 
 # Canonical integer range: 64-bit signed (spec §3.5).
 I64_MIN = -(2**63)

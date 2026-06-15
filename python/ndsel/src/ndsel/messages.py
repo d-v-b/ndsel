@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Literal, NotRequired, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict
 
 # A JSON-level bound: an int, a sentinel string, or one of those wrapped in a
 # one-element list (implicit). Typed loosely; semantic validation is in values.py.
-BoundJson = Union[int, str, list[Union[int, str]]]
+BoundJson = int | str | list[int | str]
 
 
 class PointMessage(TypedDict):
@@ -41,7 +41,7 @@ class OutputMapDict(TypedDict):
     stride: NotRequired[int]
     input_dimension: NotRequired[int]
     index_array: NotRequired[object]
-    index_array_bounds: NotRequired[list[Union[int, str]]]
+    index_array_bounds: NotRequired[list[int | str]]
 
 
 class TransformMessage(TypedDict):
@@ -55,7 +55,7 @@ class TransformMessage(TypedDict):
     output: NotRequired[list[OutputMapDict]]
 
 
-Message = Union[PointMessage, BoxMessage, SliceMessage, PointsMessage, TransformMessage]
+Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | TransformMessage
 
 
 # --- Normalized (output) shapes ---------------------------------------------

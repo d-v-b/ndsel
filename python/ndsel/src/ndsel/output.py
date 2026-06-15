@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Union
 
 from .errors import NdsqError, Reason
 from .messages import OutputMapDict
@@ -30,7 +29,7 @@ class IndexArrayMap:
     bounds: tuple[IndexValue, IndexValue]
 
 
-OutputMap = Union[ConstantMap, SingleInputDimension, IndexArrayMap]
+OutputMap = ConstantMap | SingleInputDimension | IndexArrayMap
 
 
 def canonicalize_output_map(raw: object) -> OutputMap:
