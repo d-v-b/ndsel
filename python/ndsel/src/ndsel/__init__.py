@@ -68,15 +68,16 @@ def normalize(message: Message | Point | Box | Slice | Points) -> Transform:
     """Reduce a message (or a builder dataclass) to its canonical Transform."""
     if isinstance(message, _BUILDERS):
         message = message.to_message()
-    kind = message["kind"]
-    if kind == "point":
+    # Discriminate on `kind` inline so each branch narrows `message` to the
+    # concrete message TypedDict the desugarer expects.
+    if message["kind"] == "point":
         return desugar_point(message)
-    if kind == "box":
+    if message["kind"] == "box":
         return desugar_box(message)
-    if kind == "slice":
+    if message["kind"] == "slice":
         return desugar_slice(message)
-    if kind == "points":
+    if message["kind"] == "points":
         return desugar_points(message)
-    if kind == "transform":
+    if message["kind"] == "transform":
         return canonicalize_transform(message)
-    raise NdsqError(Reason.UNKNOWN_KIND, f"unknown kind: {kind}")
+    raise NdsqError(Reason.UNKNOWN_KIND, f"unknown kind: {message['kind']}")

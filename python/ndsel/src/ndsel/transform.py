@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
-from .messages import NormalizedTransform
+from .messages import NormalizedTransform, TransformMessage
 from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
 from .values import require_list
 
@@ -29,7 +29,7 @@ def identity_output(rank: int) -> list[OutputMap]:
     return [SingleInputDimension(offset=0, stride=1, input_dimension=k) for k in range(rank)]
 
 
-def canonicalize_transform(msg: Mapping[str, object]) -> Transform:
+def canonicalize_transform(msg: TransformMessage) -> Transform:
     """Canonicalize a `transform` message body (uses the input_-prefixed field names)."""
     domain = canonicalize_domain(
         rank=msg.get("input_rank"),

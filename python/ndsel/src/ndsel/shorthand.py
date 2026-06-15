@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from .domain import Domain, canonicalize_domain
 from .errors import NdsqError, Reason
+from .messages import BoxMessage, PointMessage, PointsMessage, SliceMessage
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .transform import Transform
 from .values import ImplicitValue, require_int_list, require_list, require_str_list
 
 
-def desugar_point(msg: Mapping[str, object]) -> Transform:
+def desugar_point(msg: PointMessage) -> Transform:
     coords = require_int_list(msg.get("coords"), "point.coords")
     domain = Domain(rank=0, inclusive_min=[], exclusive_max=[], labels=[])
     output = [ConstantMap(offset=c) for c in coords]
     return Transform(domain=domain, output=output)
 
 
-def desugar_box(msg: Mapping[str, object]) -> Transform:
+def desugar_box(msg: BoxMessage) -> Transform:
     domain = canonicalize_domain(
         inclusive_min=msg.get("inclusive_min"),
         exclusive_max=msg.get("exclusive_max"),
@@ -35,7 +34,7 @@ def _ceil_div(p: int, q: int) -> int:
     return (p + q - 1) // q
 
 
-def desugar_slice(msg: Mapping[str, object]) -> Transform:
+def desugar_slice(msg: SliceMessage) -> Transform:
     start = require_int_list(msg.get("start"), "slice.start")
     stop = require_int_list(msg.get("stop"), "slice.stop")
     rank = len(start)
@@ -77,7 +76,7 @@ def desugar_slice(msg: Mapping[str, object]) -> Transform:
     return Transform(domain=domain, output=output)
 
 
-def desugar_points(msg: Mapping[str, object]) -> Transform:
+def desugar_points(msg: PointsMessage) -> Transform:
     raw_coords = require_list(msg.get("coords"), "points.coords")
     coords = [require_int_list(p, f"points.coords[{i}]") for i, p in enumerate(raw_coords)]
     m = len(coords)
