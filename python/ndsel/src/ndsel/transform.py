@@ -7,21 +7,21 @@ from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
 from .messages import NormalizedTransform
-from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
+from .output import OutputMap, SingleInputDimension, canonicalize_output_map
 from .values import require_list
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Transform:
-    """The canonical core. Serialize with `to_dict()` (the bare transform body, no `kind`)."""
+    """The canonical core. Serialize with `to_json()` (the bare transform body, no `kind`)."""
 
     domain: Domain
     output: Sequence[OutputMap]
 
-    def to_dict(self) -> NormalizedTransform:
+    def to_json(self) -> NormalizedTransform:
         return {
-            **self.domain.to_json_fields(),
-            "output": [output_map_to_json(m) for m in self.output],
+            **self.domain.to_json(),
+            "output": [m.to_json() for m in self.output],
         }
 
 

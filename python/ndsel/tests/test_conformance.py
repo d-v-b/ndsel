@@ -42,5 +42,5 @@ def test_corpus_case(name: str, case: dict):
         assert exc.value.reason.value == case["error"]
     else:
         assert _VALIDATOR.is_valid(input_msg), f"{name}: input fails schema"
-        got = normalize(parse(json.dumps(input_msg))).to_dict()
+        got = normalize(parse(json.dumps(input_msg))).to_json()
         assert got == case["normalized"]

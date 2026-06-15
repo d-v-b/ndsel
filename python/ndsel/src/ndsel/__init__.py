@@ -67,7 +67,7 @@ def parse(text: str) -> Message:
 def normalize(message: Message | Point | Box | Slice | Points) -> Transform:
     """Reduce a message (or a builder dataclass) to its canonical Transform."""
     if isinstance(message, _BUILDERS):
-        message = message.to_message()
+        message = message.to_json()
     # Discriminate on `kind` inline so each branch narrows `message` to the
     # concrete message TypedDict the desugarer expects.
     if message["kind"] == "point":

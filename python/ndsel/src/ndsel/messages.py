@@ -74,6 +74,6 @@ class DomainFields(TypedDict):
 
 
 class NormalizedTransform(DomainFields):
-    """The bare canonical transform body emitted by ``Transform.to_dict`` (no ``kind``)."""
+    """The bare canonical transform body emitted by ``Transform.to_json`` (no ``kind``)."""
 
     output: list[OutputMapDict]

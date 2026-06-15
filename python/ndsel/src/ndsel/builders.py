@@ -12,7 +12,7 @@ from .messages import BoundJson, BoxMessage, PointMessage, PointsMessage, SliceM
 class Point:
     coords: Sequence[int]
 
-    def to_message(self) -> PointMessage:
+    def to_json(self) -> PointMessage:
         return {"kind": "point", "coords": list(self.coords)}
 
 
@@ -24,7 +24,7 @@ class Box:
     shape: Sequence[BoundJson] | None = None
     labels: Sequence[str] | None = None
 
-    def to_message(self) -> BoxMessage:
+    def to_json(self) -> BoxMessage:
         msg: dict[str, object] = {"kind": "box"}
         for field in ("inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"):
             value = getattr(self, field)
@@ -40,7 +40,7 @@ class Slice:
     step: Sequence[int] | None = None
     labels: Sequence[str] | None = None
 
-    def to_message(self) -> SliceMessage:
+    def to_json(self) -> SliceMessage:
         msg: dict[str, object] = {"kind": "slice", "start": list(self.start), "stop": list(self.stop)}
         if self.step is not None:
             msg["step"] = list(self.step)
@@ -53,5 +53,5 @@ class Slice:
 class Points:
     coords: Sequence[Sequence[int]]
 
-    def to_message(self) -> PointsMessage:
+    def to_json(self) -> PointsMessage:
         return {"kind": "points", "coords": [list(p) for p in self.coords]}

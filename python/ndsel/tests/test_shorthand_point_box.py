@@ -3,7 +3,7 @@ from ndsel.builders import Box
 
 
 def norm(text: str) -> NormalizedTransform:
-    return normalize(parse(text)).to_dict()
+    return normalize(parse(text)).to_json()
 
 
 def test_point_desugars_to_constant_maps():
@@ -29,5 +29,5 @@ def test_box_shape_only_defaults_origin_zero():
 
 
 def test_normalize_accepts_a_builder():
-    d = normalize(Box(shape=[5])).to_dict()
+    d = normalize(Box(shape=[5])).to_json()
     assert d["input_exclusive_max"] == [5]

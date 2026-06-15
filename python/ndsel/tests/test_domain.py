@@ -46,9 +46,9 @@ def test_rank_field_disagreement_is_rank_mismatch():
     assert e.value.reason is Reason.RANK_MISMATCH
 
 
-def test_domain_to_json_fields():
+def test_domain_to_json():
     d = canonicalize_domain(inclusive_min=[0, 0], exclusive_max=[3, 4])
-    assert d.to_json_fields() == {
+    assert d.to_json() == {
         "input_rank": 2,
         "input_inclusive_min": [0, 0],
         "input_exclusive_max": [3, 4],

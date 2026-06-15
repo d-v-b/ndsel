@@ -30,4 +30,4 @@ def test_non_object_is_invalid_json():
 
 def test_parse_then_normalize_roundtrip():
     t = normalize(parse('{"kind": "box", "shape": [2, 3]}'))
-    assert t.to_dict()["input_exclusive_max"] == [2, 3]
+    assert t.to_json()["input_exclusive_max"] == [2, 3]

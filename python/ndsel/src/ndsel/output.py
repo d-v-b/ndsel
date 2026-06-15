@@ -13,12 +13,18 @@ from .values import IndexValue, parse_index_value, require_int
 class ConstantMap:
     offset: int
 
+    def to_json(self) -> OutputMapDict:
+        return {"offset": self.offset}
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SingleInputDimension:
     offset: int
     stride: int
     input_dimension: int
+
+    def to_json(self) -> OutputMapDict:
+        return {"offset": self.offset, "stride": self.stride, "input_dimension": self.input_dimension}
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -27,6 +33,14 @@ class IndexArrayMap:
     stride: int
     index_array: object  # raw nested JSON; deep validation deferred
     bounds: tuple[IndexValue, IndexValue]
+
+    def to_json(self) -> OutputMapDict:
+        return {
+            "offset": self.offset,
+            "stride": self.stride,
+            "index_array": self.index_array,
+            "index_array_bounds": [self.bounds[0], self.bounds[1]],
+        }
 
 
 OutputMap = ConstantMap | SingleInputDimension | IndexArrayMap
@@ -50,17 +64,3 @@ def canonicalize_output_map(raw: object) -> OutputMap:
             raise NdselError(Reason.INVALID_JSON, f"input_dimension must be non-negative, got {dim}")
         return SingleInputDimension(offset=offset, stride=stride, input_dimension=dim)
     return ConstantMap(offset=offset)
-
-
-def output_map_to_json(m: OutputMap) -> OutputMapDict:
-    if isinstance(m, ConstantMap):
-        return {"offset": m.offset}
-    if isinstance(m, SingleInputDimension):
-        return {"offset": m.offset, "stride": m.stride, "input_dimension": m.input_dimension}
-    # IndexArrayMap
-    return {
-        "offset": m.offset,
-        "stride": m.stride,
-        "index_array": m.index_array,
-        "index_array_bounds": [m.bounds[0], m.bounds[1]],
-    }

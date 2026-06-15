@@ -5,7 +5,7 @@ from ndsel.errors import NdselError, Reason
 
 
 def norm(text: str) -> NormalizedTransform:
-    return normalize(parse(text)).to_dict()
+    return normalize(parse(text)).to_json()
 
 
 def test_points_transpose_to_columnar():

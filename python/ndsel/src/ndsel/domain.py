@@ -18,7 +18,7 @@ class Domain:
     exclusive_max: list[ImplicitValue]
     labels: list[str]
 
-    def to_json_fields(self) -> DomainFields:
+    def to_json(self) -> DomainFields:
         return {
             "input_rank": self.rank,
             "input_inclusive_min": [v.to_json() for v in self.inclusive_min],
