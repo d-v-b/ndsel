@@ -16,7 +16,7 @@ build-backend = "hatchling.build"
 packages = ["src/ndsel"]
 
 [dependency-groups]
-dev = ["pytest>=8", "jsonschema>=4.21", "pyright>=1.1.390"]
+dev = ["pytest>=8", "jsonschema>=4.21", "pyright>=1.1.390", "numpy>=2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
