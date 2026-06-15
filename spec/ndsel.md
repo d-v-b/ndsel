@@ -324,4 +324,13 @@ The following are explicitly outside the scope of ndsel v1:
 
 ---
 
+## 10. References
+
+- **NumPy — Indexing on ndarrays.** <https://numpy.org/doc/stable/user/basics.indexing.html> — the basic-slicing and advanced-indexing semantics that ndsel represents.
+- **Google tensorstore.** <https://google.github.io/tensorstore/> — the array storage/indexing library whose index model ndsel adapts.
+- **tensorstore — Index space.** <https://google.github.io/tensorstore/index_space.html> — the `IndexTransform` / `IndexDomain` model that ndsel's canonical core ([section 4](#4-the-canonical-core-kind-transform)) adopts.
+- **tensorstore — `IndexTransform` JSON.** <https://google.github.io/tensorstore/python/api/tensorstore.IndexTransform.__init__-json.html> — the exact JSON encoding whose field names ndsel reuses for the `transform` kind.
+
+---
+
 *This spec adapts the index model of Google tensorstore; see the design doc for rationale.*
