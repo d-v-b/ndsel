@@ -139,23 +139,40 @@ A `transform` message is a JSON object. All members except `kind` follow tensors
 
 ### 4.2 Output maps
 
-Each element of `output` is an object of one of three kinds, **determined by which fields are present** (a map MUST NOT carry both `input_dimension` and `index_array`):
+An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches tensorstore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` (§2.1); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
+
+The kind is selected by this rule, in order:
+
+| If the map has… | …its kind is | Output coordinate |
+|-----------------|--------------|-------------------|
+| `index_array` | **`index_array`** | `offset + stride · index_array[input…]` |
+| otherwise `input_dimension` | **`single_input_dimension`** | `offset + stride · input[input_dimension]` |
+| otherwise (neither) | **`constant`** | `offset` |
+
+Each kind's fields:
+
+**`constant`** — a fixed output coordinate. The smallest valid output map is `{}` (a constant at offset 0).
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
+| `offset` | `integer` | no | Default `0`. The output coordinate. |
+
+**`single_input_dimension`** — an affine map of one input dimension.
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `input_dimension` | `integer` ≥ 0 | **yes** | Index of the input dimension. Its presence selects this kind. |
 | `offset` | `integer` | no | Default `0`. |
-| `stride` | `integer` | no | Default `1`. Meaningless for a `constant` map (omitted in canonical form). |
-| `input_dimension` | `integer` ≥ 0 | no | Its presence selects the **`single_input_dimension`** kind. An index into the input dimensions. |
-| `index_array` | nested array of `integer` | no | Its presence selects the **`index_array`** kind (takes precedence if, against the rule above, both are given). Carried verbatim; see §7 on deferred validation. |
-| `index_array_bounds` | `[index-value, index-value]` | no | `[lo, hi]`, both inclusive; default `["-inf", "+inf"]`. Read only for an `index_array` map. |
+| `stride` | `integer` | no | Default `1`. |
 
-The three kinds and the coordinate they produce:
+**`index_array`** — the output coordinate is looked up from an explicit array.
 
-| Kind | Selected by | Output coordinate |
-|------|-------------|-------------------|
-| `constant` | neither `input_dimension` nor `index_array` | `offset` |
-| `single_input_dimension` | `input_dimension` present | `offset + stride · input[input_dimension]` |
-| `index_array` | `index_array` present | `offset + stride · index_array[input…]` |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `index_array` | nested array of `integer` | **yes** | Its presence selects this kind. Carried verbatim; see §7 on deferred validation. |
+| `offset` | `integer` | no | Default `0`. |
+| `stride` | `integer` | no | Default `1`. |
+| `index_array_bounds` | `[index-value, index-value]` | no | `[lo, hi]`, both inclusive; default `["-inf", "+inf"]`. |
 
 ### 4.3 Canonical (normalized) form
 
