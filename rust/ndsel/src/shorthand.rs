@@ -177,6 +177,143 @@ impl Points {
 /// An explicit finite bound, used by the slice/points desugarers.
 fn fin(n: i64) -> ImplicitValue { ImplicitValue::explicit(IndexValue::Finite(n)) }
 
+// ---------------------------------------------------------------------------
+// Ergonomic builders — parity with the Python (`Box(shape=[3, 4])`) and
+// TypeScript (`box({ shape: [3, 4] })`) construction APIs. Build a message,
+// then `normalize(msg.into())` (each builder is `Into<Message>`). Bound setters
+// take plain `i64` for the common finite case; for `±inf` or implicit bounds,
+// use `parse` on a JSON string.
+// ---------------------------------------------------------------------------
+
+/// Map finite integers to explicit bounds.
+fn finite_bounds(values: Vec<i64>) -> Vec<ImplicitValue> {
+    values.into_iter().map(|n| ImplicitValue::explicit(IndexValue::Finite(n))).collect()
+}
+
+impl Point {
+    /// `{ "kind": "point", "coords": [...] }` — select one grid point per dimension.
+    pub fn new(coords: Vec<i64>) -> Self {
+        Point { coords }
+    }
+}
+
+impl Points {
+    /// `{ "kind": "points", "coords": [[...], ...] }` — an explicit set of points.
+    pub fn new(coords: Vec<Vec<i64>>) -> Self {
+        Points { coords }
+    }
+}
+
+impl Slice {
+    /// `{ "kind": "slice", "start": [...], "stop": [...] }` (step defaults to 1).
+    pub fn new(start: Vec<i64>, stop: Vec<i64>) -> Self {
+        Slice { start, stop, step: None, labels: None }
+    }
+
+    /// Set a per-dimension step.
+    pub fn step(mut self, step: Vec<i64>) -> Self {
+        self.step = Some(step);
+        self
+    }
+
+    /// Set per-dimension labels.
+    pub fn labels(mut self, labels: Vec<String>) -> Self {
+        self.labels = Some(labels);
+        self
+    }
+}
+
+impl BoxSel {
+    /// An empty box; choose one upper-bound spelling with the setters below.
+    pub fn new() -> Self {
+        BoxSel { domain: RawDomain::default() }
+    }
+
+    /// Set the inclusive lower bound (defaults to all-zero when omitted).
+    pub fn inclusive_min(mut self, values: Vec<i64>) -> Self {
+        self.domain.inclusive_min = Some(finite_bounds(values));
+        self
+    }
+
+    /// Set the exclusive upper bound.
+    pub fn exclusive_max(mut self, values: Vec<i64>) -> Self {
+        self.domain.exclusive_max = Some(finite_bounds(values));
+        self
+    }
+
+    /// Set the inclusive upper bound (canonicalized to `exclusive_max`).
+    pub fn inclusive_max(mut self, values: Vec<i64>) -> Self {
+        self.domain.inclusive_max = Some(finite_bounds(values));
+        self
+    }
+
+    /// Set the per-dimension extent (`exclusive_max = inclusive_min + shape`).
+    pub fn shape(mut self, values: Vec<i64>) -> Self {
+        self.domain.shape = Some(finite_bounds(values));
+        self
+    }
+
+    /// Set per-dimension labels.
+    pub fn labels(mut self, labels: Vec<String>) -> Self {
+        self.domain.labels = Some(labels);
+        self
+    }
+}
+
+impl Default for BoxSel {
+    fn default() -> Self {
+        BoxSel::new()
+    }
+}
+
+#[cfg(test)]
+mod builder_tests {
+    use crate::{BoxSel, Message, Point, Points, Slice, normalize, parse};
+
+    fn built(m: Message) -> serde_json::Value {
+        serde_json::to_value(normalize(m).unwrap()).unwrap()
+    }
+    fn parsed(json: &str) -> serde_json::Value {
+        serde_json::to_value(normalize(parse(json).unwrap()).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn point_builder_matches_parse() {
+        assert_eq!(
+            built(Point::new(vec![4, 7]).into()),
+            parsed(r#"{"kind":"point","coords":[4,7]}"#)
+        );
+    }
+
+    #[test]
+    fn box_builder_matches_parse() {
+        assert_eq!(
+            built(BoxSel::new().shape(vec![3, 4]).into()),
+            parsed(r#"{"kind":"box","shape":[3,4]}"#)
+        );
+        assert_eq!(
+            built(BoxSel::new().inclusive_min(vec![0, 0]).exclusive_max(vec![3, 4]).into()),
+            parsed(r#"{"kind":"box","inclusive_min":[0,0],"exclusive_max":[3,4]}"#)
+        );
+    }
+
+    #[test]
+    fn slice_builder_matches_parse() {
+        assert_eq!(
+            built(Slice::new(vec![0], vec![10]).step(vec![2]).into()),
+            parsed(r#"{"kind":"slice","start":[0],"stop":[10],"step":[2]}"#)
+        );
+    }
+
+    #[test]
+    fn points_builder_matches_parse() {
+        assert_eq!(
+            built(Points::new(vec![vec![1, 10], vec![2, 20]]).into()),
+            parsed(r#"{"kind":"points","coords":[[1,10],[2,20]]}"#)
+        );
+    }
+}
+
 #[cfg(test)]
 mod slice_tests {
 

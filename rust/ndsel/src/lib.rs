@@ -16,6 +16,7 @@ mod value;
 pub use domain::Domain;
 pub use error::{NdselError, Reason};
 pub use output::OutputMap;
+pub use shorthand::{BoxSel, Point, Points, Slice};
 pub use transform::Transform;
 pub use value::{ImplicitValue, IndexValue};
 
@@ -32,6 +33,32 @@ pub enum Message {
     Slice(shorthand::Slice),
     Points(shorthand::Points),
     Transform(Transform),
+}
+
+impl From<Point> for Message {
+    fn from(p: Point) -> Self {
+        Message::Point(p)
+    }
+}
+impl From<BoxSel> for Message {
+    fn from(b: BoxSel) -> Self {
+        Message::Box(b)
+    }
+}
+impl From<Slice> for Message {
+    fn from(s: Slice) -> Self {
+        Message::Slice(s)
+    }
+}
+impl From<Points> for Message {
+    fn from(p: Points) -> Self {
+        Message::Points(p)
+    }
+}
+impl From<Transform> for Message {
+    fn from(t: Transform) -> Self {
+        Message::Transform(t)
+    }
 }
 
 /// Reduce any message to its canonical `Transform`.
