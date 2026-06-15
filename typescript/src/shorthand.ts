@@ -3,7 +3,7 @@ import { canonicalizeDomain } from "./domain.ts";
 import type { BoxMessage, PointMessage, PointsMessage, SliceMessage } from "./messages.ts";
 import type { OutputMapJson } from "./output.ts";
 import { type Transform, identityOutput } from "./transform.ts";
-import { type BoundJson, requireIntArray, requireStringArray } from "./values.ts";
+import { type BoundJson, requireArray, requireIntArray, requireStringArray } from "./values.ts";
 
 export function desugarPoint(msg: PointMessage): Transform {
   const coords = requireIntArray((msg as { coords?: unknown }).coords, "point.coords");
@@ -83,7 +83,28 @@ export function desugarSlice(msg: SliceMessage): Transform {
   };
 }
 
-export function desugarPoints(_msg: PointsMessage): Transform {
-  throw new Error("desugarPoints — implemented in Task 10");
+export function desugarPoints(msg: PointsMessage): Transform {
+  const rawCoords = requireArray((msg as { coords?: unknown }).coords, "points.coords");
+  const coords = rawCoords.map((p, i) => requireIntArray(p, `points.coords[${i}]`));
+  const m = coords.length;
+  const n = coords.length > 0 ? coords[0].length : 0;
+  for (const p of coords) {
+    if (p.length !== n) {
+      throw new NdsqError(Reason.RankMismatch, "all points must have equal dimensionality");
+    }
+  }
+
+  const output: OutputMapJson[] = [];
+  for (let k = 0; k < n; k++) {
+    const column = coords.map((p) => p[k]);
+    output.push({ offset: 0, stride: 1, index_array: column, index_array_bounds: ["-inf", "+inf"] });
+  }
+  return {
+    input_rank: 1,
+    input_inclusive_min: [0],
+    input_exclusive_max: [m],
+    input_labels: [""],
+    output,
+  };
 }
 
