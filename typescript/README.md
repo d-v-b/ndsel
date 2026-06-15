@@ -41,3 +41,9 @@ npm run typecheck
 Requires **Node ≥ 23.6**: TypeScript source files run natively — no build step.
 
 > **Integer range (`number | bigint`).** Index values cover the full 64-bit signed range (`spec §3.5`). An integer within JavaScript's safe range (`±(2^53 − 1)`) is a `number`; one beyond it is a `bigint` — so `parse` reads large integer literals losslessly and `normalize` returns `bigint` for them. The `Int = number | bigint` distinction is magnitude-based, so the canonical form is representation-independent. Builders accept either (`box({ exclusiveMax: [3, 4] })` or `[3n, 4n]`). Use the exported `stringifyJson` to serialize a result, since `JSON.stringify` throws on `bigint`.
+
+## License
+
+Licensed under either of [Apache License 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT)
+at your option (`MIT OR Apache-2.0`). The ndsel specification itself is public domain
+([CC0](../spec/ndsel.md#10-license)).

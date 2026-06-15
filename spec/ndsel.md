@@ -324,7 +324,13 @@ The following are explicitly outside the scope of ndsel v1:
 
 ---
 
-## 10. References
+## 10. License
+
+This specification is dedicated to the public domain under [CC0 1.0 Universal](../LICENSE-CC0). You may copy, modify, and implement it — in whole or in part, for any purpose, without attribution or permission. The reference implementations (`rust/`, `python/`, `typescript/`) are separately licensed under `MIT OR Apache-2.0`.
+
+---
+
+## 11. References
 
 - **NumPy — Indexing on ndarrays.** <https://numpy.org/doc/stable/user/basics.indexing.html> — the basic-slicing and advanced-indexing semantics that ndsel represents.
 - **TensorStore.** <https://google.github.io/tensorstore/> — Google's array storage/indexing library whose index model ndsel adapts.

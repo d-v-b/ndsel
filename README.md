@@ -39,3 +39,16 @@ frame — re-basing the output to 0 is an explicit, separate step.
 | [`rust/ndsel/`](rust/ndsel/) | Rust reference implementation **(implemented)** |
 | [`python/ndsel/`](python/ndsel/) | Python implementation (planned — Plan 2) |
 | [`typescript/`](typescript/) | TypeScript implementation (planned — Plan 3) |
+
+## License
+
+The **specification** ([`spec/`](spec/)), the **JSON Schema** ([`schema/`](schema/)),
+and the **conformance corpus** ([`conformance/`](conformance/)) are dedicated to the
+public domain under [CC0 1.0 Universal](LICENSE-CC0) — implement them freely, no
+attribution required.
+
+The **reference implementations** (`rust/`, `python/`, `typescript/`) are licensed
+under either of [Apache License 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT)
+at your option (`MIT OR Apache-2.0`). Unless you explicitly state otherwise, any
+contribution intentionally submitted for inclusion in the work shall be dual
+licensed as above, without any additional terms or conditions.

@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "JSON-serializable n-dimensional spatial queries (TypeScript implementation)",
   "type": "module",
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "engines": { "node": ">=23.6" },
   "exports": { ".": "./src/index.ts" },
-  "files": ["src", "README.md"],
+  "files": ["src", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
   "scripts": {
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
