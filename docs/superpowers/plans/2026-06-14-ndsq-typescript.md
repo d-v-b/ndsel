@@ -58,7 +58,7 @@ Create `typescript/package.json`:
   "engines": { "node": ">=23.6" },
   "exports": { ".": "./src/index.ts" },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -112,7 +112,7 @@ Run: `npm install` — Expected: installs `ajv`, `typescript`, `@types/node`; cr
 
 Run: `npx tsc --noEmit` — Expected: no output, exit 0 (the stub typechecks).
 
-Run: `node --test test/ 2>&1 | tail -3` — Expected: it runs (reports no test files / 0 tests; the `test/` dir doesn't exist yet, so "Could not find test files" is acceptable — the point is the runner executes). This is fine; Task 2 adds the first test.
+Run: `node --test test/*.test.ts 2>&1 | tail -3` — Expected: it runs (reports no test files / 0 tests; the `test/` dir doesn't exist yet, so "Could not find test files" is acceptable — the point is the runner executes). This is fine; Task 2 adds the first test.
 
 - [ ] **Step 5: Commit**
 
@@ -1077,7 +1077,7 @@ import { NdsqError } from "../src/errors.ts";
 import { normalize, parse } from "../src/index.ts";
 
 function norm(text: string): Record<string, unknown> {
-  return normalize(parse(text)) as Record<string, unknown>;
+  return normalize(parse(text)) as unknown as Record<string, unknown>;
 }
 
 function reason(text: string): string {
@@ -1249,7 +1249,7 @@ import { NdsqError } from "../src/errors.ts";
 import { normalize, parse } from "../src/index.ts";
 
 function norm(text: string): Record<string, unknown> {
-  return normalize(parse(text)) as Record<string, unknown>;
+  return normalize(parse(text)) as unknown as Record<string, unknown>;
 }
 
 test("points transpose to columnar index arrays", () => {
@@ -1383,7 +1383,7 @@ Expected: both tests pass (behavior already implemented). If any fail, reconcile
 
 - [ ] **Step 3: Run the full unit suite**
 
-Run: `node --test test/ 2>&1 | tail -8`
+Run: `node --test test/*.test.ts 2>&1 | tail -8`
 Expected: all unit test files pass.
 
 - [ ] **Step 4: Commit**
@@ -1470,7 +1470,7 @@ Note on the `ajv` import: the runner uses the default import `import Ajv2020 fro
 
 - [ ] **Step 3: Run the full suite**
 
-Run: `node --test test/ 2>&1 | tail -8`
+Run: `node --test test/*.test.ts 2>&1 | tail -8`
 Expected: all unit tests + every conformance case pass.
 
 - [ ] **Step 4: Commit**
@@ -1510,7 +1510,7 @@ a note that it adapts tensorstore's index model (link `../spec/ndsq.md`) and is 
 
 - [ ] **Step 3: Full verification**
 
-Run: `node --test test/ 2>&1 | tail -8`
+Run: `node --test test/*.test.ts 2>&1 | tail -8`
 Expected: every test passes (unit + all conformance cases).
 
 Run: `node --input-type=module -e "import { normalize, box } from './src/index.ts'; console.log(JSON.stringify(normalize(box({ shape: [3] }))))" 2>&1 | tail -2`

@@ -7,7 +7,7 @@
   "engines": { "node": ">=23.6" },
   "exports": { ".": "./src/index.ts" },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
