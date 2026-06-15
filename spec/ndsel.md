@@ -7,9 +7,11 @@
 
 ## 1. Overview
 
-`ndsel` ("n-dimensional selection") is a **JSON-serializable representation of array indexing operations**. Given an n-dimensional integer index space, an ndsel message denotes a **subset of points together with how those points are arranged in a result array**.
+`ndsel` ("n-dimensional selection") is a JSON format for **selecting a subset of points from an n-dimensional integer grid**. A message names *which* source points are selected; the shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape. A selected point keeps its source coordinate: selecting picks out existing points, it does not renumber them into a fresh index space.
 
-ndsel is **denotational, not operational**: a message encodes a resolved selection-and-arrangement (the resulting domain and output maps), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the resolved message prior to serialization.
+The canonical representation of a selection is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. Besides bounding *which* points are selected, the canonical form can also describe how they are laid out — reordering axes, inserting degenerate ones — for advanced cases; but the act a message denotes is fundamentally **selection**, and the common kinds (`point`, `box`, `slice`, `points`) are pure selection.
+
+ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
 To express the same selection compactly at varying cost, ndsel defines a **shorthand ladder** of message kinds ordered from compact to explicit:
 
@@ -21,7 +23,7 @@ To express the same selection compactly at varying cost, ndsel defines a **short
 | `points`    | An arbitrary explicit set of points      | 1-D |
 | `transform` | Anything (the full canonical core)       | any |
 
-Every shorthand MUST have a normative desugaring to `transform` (§5). `transform` is the universal escape hatch: any selection-with-arrangement is representable. The shorthands are faithful special cases chosen to cover common selection shapes compactly.
+Every shorthand MUST have a normative desugaring to `transform` (§5). `transform` is the universal escape hatch: any selection is representable (including the rare cases that also rearrange axes). The shorthands are faithful special cases chosen to cover common selection shapes compactly.
 
 ### 1.1 A worked example
 
@@ -45,7 +47,7 @@ Normalizing it (§4.3) produces the canonical `transform`: the same selection wr
 }
 ```
 
-Read it as a function from a result index `i` to a source index: `source = 0 + 2·i`, over the result domain `[5, 10)`. So result indices 5…9 address source 10…18 — a length-5 dimension. The result domain is `[5, 10)`, **not** re-based to `[0, 5)`: ndsel preserves the source coordinate frame (§2.2).
+The five selected points are `{10, 12, 14, 16, 18}`. In the canonical form the result index `i` names the source point `0 + 2·i` over the domain `[5, 10)` — so the points are addressed `5…9` (point 10 sits at `10 / 2 = 5`). Selecting does **not** renumber the result to a fresh `0…4` array: the selected points keep their source coordinates, so the result stays anchored to the source frame (§2.2). A consumer that wants a 0-based result re-bases it explicitly.
 
 The same array can be addressed with the other shorthands, each compact for its shape:
 
@@ -70,9 +72,11 @@ ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`tr
 
 The shorthands (`point`/`box`/`slice`/`points`) are ndsel's own; tensorstore has no JSON encoding for them. They merely desugar to ordinary `transform`s.
 
-### 2.2 Coordinate-frame preservation follows tensorstore (not a departure)
+### 2.2 Selected points keep their source coordinates
 
-ndsel preserves the **source** coordinate frame of each result dimension by default — a slice over `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. This is **tensorstore's own convention**, not a departure from it; the departure is from **NumPy**, which re-bases sliced axes to origin 0. Re-basing a dimension to origin 0 in ndsel MUST be done explicitly via a `transform`; no shorthand does it implicitly. A direct consequence: a pure restriction (a `box`) desugars to **identity** output maps — it performs no rearrangement and therefore introduces none.
+Because a message **selects** existing points rather than transforming them, a selected point keeps the coordinate it had in the source. The result is therefore *anchored to the source frame*, not renumbered to a fresh 0-based index space: selecting `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. (This is also tensorstore's convention; the renumbering ndsel avoids is **NumPy's**, which re-bases sliced axes to origin 0.) Re-basing a result to origin 0 MUST be requested explicitly via a `transform`; no shorthand does it implicitly.
+
+A direct consequence: a `box` — which selects a contiguous block and reorders nothing — desugars to **identity** output maps. The points it selects are exactly where they were, so the canonical form is a pure domain restriction with no coordinate mapping at all. Genuine *rearrangement* (reordering or inserting axes) is available, but only through the `transform` kind; the shorthands never rearrange.
 
 ---
 
