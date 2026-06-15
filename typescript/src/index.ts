@@ -6,13 +6,13 @@
  * builders (`point`/`box`/`slice`/`points`).
  */
 
-import { NdsqError, Reason } from "./errors.ts";
+import { NdselError, Reason } from "./errors.ts";
 import { parseJson, stringifyJson } from "./json.ts";
 import type { Message } from "./messages.ts";
 import { desugarBox, desugarPoint, desugarPoints, desugarSlice } from "./shorthand.ts";
 import { type Transform, canonicalizeTransform } from "./transform.ts";
 
-export { NdsqError, Reason };
+export { NdselError, Reason };
 export { stringifyJson };
 export type { ReasonCode } from "./errors.ts";
 export type {
@@ -41,17 +41,17 @@ export function parse(text: string): Message {
   try {
     obj = parseJson(text);
   } catch (err) {
-    throw new NdsqError(Reason.InvalidJson, err instanceof Error ? err.message : String(err));
+    throw new NdselError(Reason.InvalidJson, err instanceof Error ? err.message : String(err));
   }
   if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
-    throw new NdsqError(Reason.InvalidJson, "message must be a JSON object");
+    throw new NdselError(Reason.InvalidJson, "message must be a JSON object");
   }
   const kind = (obj as { kind?: unknown }).kind;
   if (typeof kind !== "string") {
-    throw new NdsqError(Reason.InvalidJson, "missing string `kind`");
+    throw new NdselError(Reason.InvalidJson, "missing string `kind`");
   }
   if (!KNOWN_KINDS.has(kind)) {
-    throw new NdsqError(Reason.UnknownKind, `unknown kind: ${kind}`);
+    throw new NdselError(Reason.UnknownKind, `unknown kind: ${kind}`);
   }
   return obj as Message;
 }
@@ -71,7 +71,7 @@ export function normalize(message: Message): Transform {
       return canonicalizeTransform(message);
     default: {
       const k = (message as { kind?: unknown }).kind;
-      throw new NdsqError(Reason.UnknownKind, `unknown kind: ${String(k)}`);
+      throw new NdselError(Reason.UnknownKind, `unknown kind: ${String(k)}`);
     }
   }
 }

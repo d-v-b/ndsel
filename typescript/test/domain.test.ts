@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NdsqError } from "../src/errors.ts";
+import { NdselError } from "../src/errors.ts";
 import { canonicalizeDomain } from "../src/domain.ts";
 
 test("shape only defaults min to zero", () => {
@@ -25,13 +25,13 @@ test("implicit and infinite bounds preserved", () => {
 });
 
 test("multiple upper bounds is error", () => {
-  assert.throws(() => canonicalizeDomain({ shape: [3], exclusive_max: [3] }), (e) => e instanceof NdsqError && e.reason === "multiple_upper_bounds");
+  assert.throws(() => canonicalizeDomain({ shape: [3], exclusive_max: [3] }), (e) => e instanceof NdselError && e.reason === "multiple_upper_bounds");
 });
 
 test("length disagreement is rank_mismatch", () => {
-  assert.throws(() => canonicalizeDomain({ inclusive_min: [0, 0], shape: [3] }), (e) => e instanceof NdsqError && e.reason === "rank_mismatch");
+  assert.throws(() => canonicalizeDomain({ inclusive_min: [0, 0], shape: [3] }), (e) => e instanceof NdselError && e.reason === "rank_mismatch");
 });
 
 test("non-list bound is invalid_json", () => {
-  assert.throws(() => canonicalizeDomain({ inclusive_min: 5 }), (e) => e instanceof NdsqError && e.reason === "invalid_json");
+  assert.throws(() => canonicalizeDomain({ inclusive_min: 5 }), (e) => e instanceof NdselError && e.reason === "invalid_json");
 });

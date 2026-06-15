@@ -1,6 +1,6 @@
 import pytest
 
-from ndsel.errors import NdsqError, Reason
+from ndsel.errors import NdselError, Reason
 from ndsel.values import ImplicitValue, parse_index_value
 
 
@@ -11,10 +11,10 @@ def test_parse_index_value_int_and_sentinels():
 
 
 def test_parse_index_value_rejects_bool_and_garbage():
-    with pytest.raises(NdsqError) as e1:
+    with pytest.raises(NdselError) as e1:
         parse_index_value(True)
     assert e1.value.reason is Reason.INVALID_JSON
-    with pytest.raises(NdsqError):
+    with pytest.raises(NdselError):
         parse_index_value("nope")
 
 
@@ -37,7 +37,7 @@ def test_bracketed_sentinel_is_implicit():
 
 
 def test_multi_element_bracket_is_invalid():
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         ImplicitValue.from_json([1, 2])
     assert e.value.reason is Reason.INVALID_JSON
 

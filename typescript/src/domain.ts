@@ -1,4 +1,4 @@
-import { NdsqError, Reason } from "./errors.ts";
+import { NdselError, Reason } from "./errors.ts";
 import {
   type BoundJson,
   type IndexValue,
@@ -58,19 +58,19 @@ export function canonicalizeDomain(fields: RawDomainFields): DomainFields {
   // A rank is a small dimension count; reduce to number for length comparisons.
   let rank = fields.rank === undefined ? null : Number(requireInt(fields.rank, "rank"));
   if (rank !== null && rank < 0) {
-    throw new NdsqError(Reason.InvalidJson, `rank must be non-negative, got ${rank}`);
+    throw new NdselError(Reason.InvalidJson, `rank must be non-negative, got ${rank}`);
   }
 
   const upperCount = (emax !== null ? 1 : 0) + (incmax !== null ? 1 : 0) + (shp !== null ? 1 : 0);
   if (upperCount > 1) {
-    throw new NdsqError(Reason.MultipleUpperBounds, "specify only one of exclusive_max / inclusive_max / shape");
+    throw new NdselError(Reason.MultipleUpperBounds, "specify only one of exclusive_max / inclusive_max / shape");
   }
 
   let resolved = rank;
   for (const arr of [imin, emax, incmax, shp, labels]) {
     if (arr === null) continue;
     if (resolved !== null && resolved !== arr.length) {
-      throw new NdsqError(Reason.RankMismatch, `array length ${arr.length} disagrees with rank ${resolved}`);
+      throw new NdselError(Reason.RankMismatch, `array length ${arr.length} disagrees with rank ${resolved}`);
     }
     resolved = arr.length;
   }

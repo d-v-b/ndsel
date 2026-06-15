@@ -16,7 +16,7 @@ class Reason(str, Enum):
     INVALID_JSON = "invalid_json"
 
 
-class NdsqError(Exception):
+class NdselError(Exception):
     """Raised when a message cannot be parsed or normalized."""
 
     def __init__(self, reason: Reason, detail: str) -> None:

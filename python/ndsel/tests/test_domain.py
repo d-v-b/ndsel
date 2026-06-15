@@ -1,7 +1,7 @@
 import pytest
 
 from ndsel.domain import canonicalize_domain
-from ndsel.errors import NdsqError, Reason
+from ndsel.errors import NdselError, Reason
 from ndsel.values import ImplicitValue
 
 
@@ -29,19 +29,19 @@ def test_implicit_and_infinite_bounds_preserved():
 
 
 def test_multiple_upper_bounds_is_error():
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         canonicalize_domain(shape=[3], exclusive_max=[3])
     assert e.value.reason is Reason.MULTIPLE_UPPER_BOUNDS
 
 
 def test_length_disagreement_is_rank_mismatch():
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         canonicalize_domain(inclusive_min=[0, 0], shape=[3])
     assert e.value.reason is Reason.RANK_MISMATCH
 
 
 def test_rank_field_disagreement_is_rank_mismatch():
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         canonicalize_domain(rank=2, inclusive_min=[0])
     assert e.value.reason is Reason.RANK_MISMATCH
 

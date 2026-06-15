@@ -1,7 +1,7 @@
 import pytest
 
 from ndsel import NormalizedTransform, normalize, parse
-from ndsel.errors import NdsqError, Reason
+from ndsel.errors import NdselError, Reason
 
 
 def norm(text: str) -> NormalizedTransform:
@@ -27,6 +27,6 @@ def test_empty_points():
 
 
 def test_ragged_points_is_rank_mismatch():
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         normalize(parse('{"kind": "points", "coords": [[1, 2], [3]]}'))
     assert e.value.reason is Reason.RANK_MISMATCH

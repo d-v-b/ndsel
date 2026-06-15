@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .domain import Domain, canonicalize_domain
-from .errors import NdsqError, Reason
+from .errors import NdselError, Reason
 from .messages import BoxMessage, PointMessage, PointsMessage, SliceMessage
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .transform import Transform
@@ -39,21 +39,21 @@ def desugar_slice(msg: SliceMessage) -> Transform:
     stop = require_int_list(msg.get("stop"), "slice.stop")
     rank = len(start)
     if len(stop) != rank:
-        raise NdsqError(Reason.RANK_MISMATCH, "start and stop must have equal length")
+        raise NdselError(Reason.RANK_MISMATCH, "start and stop must have equal length")
     raw_step = msg.get("step")
     if raw_step is None:
         step = [1] * rank
     else:
         step = require_int_list(raw_step, "slice.step")
         if len(step) != rank:
-            raise NdsqError(Reason.RANK_MISMATCH, "step length must match start/stop")
+            raise NdselError(Reason.RANK_MISMATCH, "step length must match start/stop")
     raw_labels = msg.get("labels")
     if raw_labels is None:
         labels = None
     else:
         labels = require_str_list(raw_labels, "slice.labels")
         if len(labels) != rank:
-            raise NdsqError(Reason.RANK_MISMATCH, "labels length must match start/stop")
+            raise NdselError(Reason.RANK_MISMATCH, "labels length must match start/stop")
 
     inclusive_min: list[ImplicitValue] = []
     exclusive_max: list[ImplicitValue] = []
@@ -61,9 +61,9 @@ def desugar_slice(msg: SliceMessage) -> Transform:
     for k in range(rank):
         a, b, s = start[k], stop[k], step[k]
         if s == 0:
-            raise NdsqError(Reason.STEP_ZERO, "step must be non-zero")
+            raise NdselError(Reason.STEP_ZERO, "step must be non-zero")
         if s < 0:
-            raise NdsqError(Reason.NEGATIVE_STEP_UNSUPPORTED, "negative step is not yet specified")
+            raise NdselError(Reason.NEGATIVE_STEP_UNSUPPORTED, "negative step is not yet specified")
         m = 0 if b <= a else _ceil_div(b - a, s)
         o = a // s  # floor(a/s) for s > 0
         offset = a - s * o  # lattice phase in [0, s)
@@ -83,7 +83,7 @@ def desugar_points(msg: PointsMessage) -> Transform:
     n = len(coords[0]) if coords else 0
     for point in coords:
         if len(point) != n:
-            raise NdsqError(Reason.RANK_MISMATCH, "all points must have equal dimensionality")
+            raise NdselError(Reason.RANK_MISMATCH, "all points must have equal dimensionality")
 
     domain = Domain(
         rank=1,

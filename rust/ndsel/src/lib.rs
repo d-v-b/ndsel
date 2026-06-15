@@ -14,7 +14,7 @@ mod transform;
 mod value;
 
 pub use domain::Domain;
-pub use error::{NdsqError, Reason};
+pub use error::{NdselError, Reason};
 pub use output::OutputMap;
 pub use transform::Transform;
 pub use value::{ImplicitValue, IndexValue};
@@ -35,7 +35,7 @@ pub enum Message {
 }
 
 /// Reduce any message to its canonical `Transform`.
-pub fn normalize(message: Message) -> Result<Transform, NdsqError> {
+pub fn normalize(message: Message) -> Result<Transform, NdselError> {
     match message {
         Message::Point(p) => p.desugar(),
         Message::Box(b) => b.desugar(),
@@ -47,22 +47,22 @@ pub fn normalize(message: Message) -> Result<Transform, NdsqError> {
 
 /// Parse a JSON string into a `Message`, dispatching on the `kind` discriminator.
 /// Unknown `kind` values yield `unknown_kind`; a missing `kind` yields `invalid_json`.
-pub fn parse(json: &str) -> Result<Message, NdsqError> {
+pub fn parse(json: &str) -> Result<Message, NdselError> {
     use serde_json::{from_value, Value};
-    let value: Value = serde_json::from_str(json).map_err(NdsqError::from_serde)?;
+    let value: Value = serde_json::from_str(json).map_err(NdselError::from_serde)?;
     let kind = value
         .get("kind")
         .and_then(|k| k.as_str())
-        .ok_or_else(|| NdsqError::new(Reason::InvalidJson, "missing string `kind`"))?
+        .ok_or_else(|| NdselError::new(Reason::InvalidJson, "missing string `kind`"))?
         .to_owned();
     let msg = match kind.as_str() {
-        "point" => Message::Point(from_value(value).map_err(NdsqError::from_serde)?),
-        "box" => Message::Box(from_value(value).map_err(NdsqError::from_serde)?),
-        "slice" => Message::Slice(from_value(value).map_err(NdsqError::from_serde)?),
-        "points" => Message::Points(from_value(value).map_err(NdsqError::from_serde)?),
-        "transform" => Message::Transform(from_value(value).map_err(NdsqError::from_serde)?),
+        "point" => Message::Point(from_value(value).map_err(NdselError::from_serde)?),
+        "box" => Message::Box(from_value(value).map_err(NdselError::from_serde)?),
+        "slice" => Message::Slice(from_value(value).map_err(NdselError::from_serde)?),
+        "points" => Message::Points(from_value(value).map_err(NdselError::from_serde)?),
+        "transform" => Message::Transform(from_value(value).map_err(NdselError::from_serde)?),
         other => {
-            return Err(NdsqError::new(Reason::UnknownKind, format!("unknown kind: {other}")));
+            return Err(NdselError::new(Reason::UnknownKind, format!("unknown kind: {other}")));
         }
     };
     Ok(msg)

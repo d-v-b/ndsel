@@ -27,29 +27,29 @@ impl Reason {
 
 /// An error produced while parsing or normalizing a message.
 #[derive(Debug, Clone)]
-pub struct NdsqError {
+pub struct NdselError {
     pub reason: Reason,
     pub detail: String,
 }
 
-impl NdsqError {
+impl NdselError {
     pub fn new(reason: Reason, detail: impl Into<String>) -> Self {
-        NdsqError { reason, detail: detail.into() }
+        NdselError { reason, detail: detail.into() }
     }
 
     pub fn from_serde(err: serde_json::Error) -> Self {
         // serde's untagged/`kind` failures and type errors all collapse here.
-        NdsqError::new(Reason::InvalidJson, err.to_string())
+        NdselError::new(Reason::InvalidJson, err.to_string())
     }
 }
 
-impl fmt::Display for NdsqError {
+impl fmt::Display for NdselError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.reason.code(), self.detail)
     }
 }
 
-impl std::error::Error for NdsqError {}
+impl std::error::Error for NdselError {}
 
 #[cfg(test)]
 mod tests {

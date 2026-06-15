@@ -1,4 +1,4 @@
-from ndsel.errors import NdsqError, Reason
+from ndsel.errors import NdselError, Reason
 
 
 def test_reason_codes_are_stable():
@@ -11,6 +11,6 @@ def test_reason_codes_are_stable():
 
 
 def test_error_carries_reason_and_detail():
-    err = NdsqError(Reason.STEP_ZERO, "step must be non-zero")
+    err = NdselError(Reason.STEP_ZERO, "step must be non-zero")
     assert err.reason is Reason.STEP_ZERO
     assert "step must be non-zero" in str(err)

@@ -2,7 +2,7 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use serde::Deserialize;
 
 use crate::domain::{Domain, RawDomain};
-use crate::error::NdsqError;
+use crate::error::NdselError;
 use crate::output::{OutputMap, RawOutputMap};
 use crate::value::ImplicitValue;
 
@@ -40,7 +40,7 @@ struct CanonTransform {
 impl Transform {
     /// Produce the canonical form: domain normalized, output explicit (identity
     /// if omitted), all maps default-filled.
-    pub fn canonicalize(self) -> Result<Transform, NdsqError> {
+    pub fn canonicalize(self) -> Result<Transform, NdselError> {
         // Already canonical (e.g. built by a shorthand desugarer via `from_parts`):
         // the raw `input_*` fields are absent, so re-deriving would discard the
         // result. Return it unchanged — canonicalize is idempotent on canonical input.

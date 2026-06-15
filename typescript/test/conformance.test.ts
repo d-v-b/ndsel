@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { parseJson, stringifyJson } from "../src/json.ts";
-import { NdsqError, normalize, parse } from "../src/index.ts";
+import { NdselError, normalize, parse } from "../src/index.ts";
 
 const repoRoot = join(import.meta.dirname, "..", "..");
 const corpusDir = join(repoRoot, "conformance");
@@ -44,8 +44,8 @@ for (const fixture of fixtures) {
         normalize(parse(input));
         assert.fail(`${fixture.name}: expected an error`);
       } catch (e) {
-        assert.ok(e instanceof NdsqError, `${fixture.name}: ${String(e)}`);
-        assert.equal((e as NdsqError).reason, fixture.error);
+        assert.ok(e instanceof NdselError, `${fixture.name}: ${String(e)}`);
+        assert.equal((e as NdselError).reason, fixture.error);
       }
     } else {
       // ajv validates the JSON structure (numbers); the bigint comparison is done

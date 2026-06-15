@@ -11,13 +11,13 @@ export const Reason = {
 export type ReasonCode = (typeof Reason)[keyof typeof Reason];
 
 /** Raised when a message cannot be parsed or normalized. */
-export class NdsqError extends Error {
+export class NdselError extends Error {
   reason: ReasonCode;
   detail: string;
 
   constructor(reason: ReasonCode, detail: string) {
     super(`${reason}: ${detail}`);
-    this.name = "NdsqError";
+    this.name = "NdselError";
     this.reason = reason;
     this.detail = detail;
   }

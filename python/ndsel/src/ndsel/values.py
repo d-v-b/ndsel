@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from .errors import NdsqError, Reason
+from .errors import NdselError, Reason
 from .messages import BoundJson
 
 # A single index coordinate: a finite int, or the infinity sentinels.
@@ -19,36 +19,36 @@ I64_MAX = 2**63 - 1
 def parse_index_value(raw: object) -> IndexValue:
     """Validate a JSON scalar as an IndexValue. Rejects bool (a Python int subclass)."""
     if isinstance(raw, bool):
-        raise NdsqError(Reason.INVALID_JSON, f"index value must be an integer, got bool {raw!r}")
+        raise NdselError(Reason.INVALID_JSON, f"index value must be an integer, got bool {raw!r}")
     if isinstance(raw, int):
         if not (I64_MIN <= raw <= I64_MAX):
-            raise NdsqError(Reason.INVALID_JSON, f"index value {raw} is out of 64-bit signed range")
+            raise NdselError(Reason.INVALID_JSON, f"index value {raw} is out of 64-bit signed range")
         return raw
     if raw == "-inf" or raw == "+inf":
         return raw  # type: ignore[return-value]
-    raise NdsqError(Reason.INVALID_JSON, f"invalid index value: {raw!r}")
+    raise NdselError(Reason.INVALID_JSON, f"invalid index value: {raw!r}")
 
 
 def require_int(raw: object, what: str) -> int:
     """Validate that a JSON value is a plain integer in 64-bit signed range (rejecting bool)."""
     if isinstance(raw, bool) or not isinstance(raw, int):
-        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an integer, got {raw!r}")
+        raise NdselError(Reason.INVALID_JSON, f"{what} must be an integer, got {raw!r}")
     if not (I64_MIN <= raw <= I64_MAX):
-        raise NdsqError(Reason.INVALID_JSON, f"{what} value {raw} is out of 64-bit signed range")
+        raise NdselError(Reason.INVALID_JSON, f"{what} value {raw} is out of 64-bit signed range")
     return raw
 
 
 def require_int_list(raw: object, what: str) -> list[int]:
     """Validate that a JSON value is an array of plain integers."""
     if not isinstance(raw, list):
-        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an array of integers, got {raw!r}")
+        raise NdselError(Reason.INVALID_JSON, f"{what} must be an array of integers, got {raw!r}")
     return [require_int(v, f"{what}[{i}]") for i, v in enumerate(raw)]
 
 
 def require_list(raw: object, what: str) -> list[object]:
     """Validate that a JSON value is an array (element types checked by the caller)."""
     if not isinstance(raw, list):
-        raise NdsqError(Reason.INVALID_JSON, f"{what} must be an array, got {raw!r}")
+        raise NdselError(Reason.INVALID_JSON, f"{what} must be an array, got {raw!r}")
     return raw
 
 
@@ -57,7 +57,7 @@ def require_str_list(raw: object, what: str) -> list[str]:
     result: list[str] = []
     for i, v in enumerate(require_list(raw, what)):
         if not isinstance(v, str):
-            raise NdsqError(Reason.INVALID_JSON, f"{what}[{i}] must be a string, got {v!r}")
+            raise NdselError(Reason.INVALID_JSON, f"{what}[{i}] must be a string, got {v!r}")
         result.append(v)
     return result
 
@@ -81,7 +81,7 @@ class ImplicitValue:
     def from_json(cls, raw: object) -> "ImplicitValue":
         if isinstance(raw, list):
             if len(raw) != 1:
-                raise NdsqError(Reason.INVALID_JSON, "implicit bound must be a 1-element array")
+                raise NdselError(Reason.INVALID_JSON, "implicit bound must be a 1-element array")
             return cls(value=parse_index_value(raw[0]), implicit=True)
         return cls(value=parse_index_value(raw), implicit=False)
 

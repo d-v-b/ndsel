@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from ndsel import NdsqError, normalize, parse
+from ndsel import NdselError, normalize, parse
 
 REPO_ROOT = Path(__file__).parents[3]
 CORPUS_DIR = REPO_ROOT / "conformance"
@@ -37,7 +37,7 @@ def test_corpus_case(name: str, case: dict):
     input_msg = case["input"]
     if "error" in case:
         # Error inputs may be intentionally schema-invalid; not schema-checked.
-        with pytest.raises(NdsqError) as exc:
+        with pytest.raises(NdselError) as exc:
             normalize(parse(json.dumps(input_msg)))
         assert exc.value.reason.value == case["error"]
     else:

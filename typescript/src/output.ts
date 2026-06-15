@@ -1,4 +1,4 @@
-import { NdsqError, Reason } from "./errors.ts";
+import { NdselError, Reason } from "./errors.ts";
 import { type IndexValue, type Int, parseIndexValue, requireInt } from "./values.ts";
 
 /** A canonical output map (its JSON shape). */
@@ -9,7 +9,7 @@ export type OutputMapJson =
 
 export function canonicalizeOutputMap(raw: unknown): OutputMapJson {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    throw new NdsqError(Reason.InvalidJson, `output map must be an object, got ${JSON.stringify(raw)}`);
+    throw new NdselError(Reason.InvalidJson, `output map must be an object, got ${JSON.stringify(raw)}`);
   }
   const m = raw as Record<string, unknown>;
   const offset = "offset" in m ? requireInt(m.offset, "output.offset") : 0;
@@ -18,7 +18,7 @@ export function canonicalizeOutputMap(raw: unknown): OutputMapJson {
   if ("index_array" in m) {
     const b = "index_array_bounds" in m ? m.index_array_bounds : ["-inf", "+inf"];
     if (!Array.isArray(b) || b.length !== 2) {
-      throw new NdsqError(Reason.InvalidJson, "index_array_bounds must be a 2-element array");
+      throw new NdselError(Reason.InvalidJson, "index_array_bounds must be a 2-element array");
     }
     return {
       offset,
@@ -30,7 +30,7 @@ export function canonicalizeOutputMap(raw: unknown): OutputMapJson {
   if ("input_dimension" in m) {
     const dim = requireInt(m.input_dimension, "output.input_dimension");
     if (dim < 0) {
-      throw new NdsqError(Reason.InvalidJson, `input_dimension must be non-negative, got ${dim}`);
+      throw new NdselError(Reason.InvalidJson, `input_dimension must be non-negative, got ${dim}`);
     }
     return { offset, stride, input_dimension: dim };
   }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NdsqError, Reason } from "../src/errors.ts";
+import { NdselError, Reason } from "../src/errors.ts";
 
 test("reason codes are stable", () => {
   assert.equal(Reason.StepZero, "step_zero");
@@ -12,9 +12,9 @@ test("reason codes are stable", () => {
 });
 
 test("error carries reason and detail", () => {
-  const err = new NdsqError(Reason.StepZero, "step must be non-zero");
+  const err = new NdselError(Reason.StepZero, "step must be non-zero");
   assert.equal(err.reason, "step_zero");
-  assert.ok(err instanceof NdsqError);
+  assert.ok(err instanceof NdselError);
   assert.ok(err instanceof Error);
   assert.match(err.message, /step must be non-zero/);
 });

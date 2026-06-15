@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::error::{NdsqError, Reason};
+use crate::error::{NdselError, Reason};
 use crate::value::{ImplicitValue, IndexValue};
 
 /// The canonical input domain: per-dimension [inclusive_min, exclusive_max) + labels.
@@ -30,13 +30,13 @@ pub struct RawDomain {
 }
 
 impl RawDomain {
-    pub fn into_domain(self) -> Result<Domain, NdsqError> {
+    pub fn into_domain(self) -> Result<Domain, NdselError> {
         // Exactly one upper-bound spelling.
         let upper_count = self.exclusive_max.is_some() as u8
             + self.inclusive_max.is_some() as u8
             + self.shape.is_some() as u8;
         if upper_count > 1 {
-            return Err(NdsqError::new(
+            return Err(NdselError::new(
                 Reason::MultipleUpperBounds,
                 "specify only one of exclusive_max / inclusive_max / shape",
             ));
@@ -44,9 +44,9 @@ impl RawDomain {
 
         // Determine rank from whichever arrays are present.
         let mut rank: Option<usize> = self.rank;
-        let check = |len: usize, rank: &mut Option<usize>| -> Result<(), NdsqError> {
+        let check = |len: usize, rank: &mut Option<usize>| -> Result<(), NdselError> {
             match rank {
-                Some(r) if *r != len => Err(NdsqError::new(
+                Some(r) if *r != len => Err(NdselError::new(
                     Reason::RankMismatch,
                     format!("array length {len} disagrees with rank {r}"),
                 )),

@@ -1,15 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NdsqError } from "../src/errors.ts";
+import { NdselError } from "../src/errors.ts";
 import { normalize, parse } from "../src/index.ts";
 
 function reason(text: string): string {
   try {
     normalize(parse(text));
   } catch (e) {
-    if (e instanceof NdsqError) return e.reason;
+    if (e instanceof NdselError) return e.reason;
   }
-  throw new Error("expected NdsqError");
+  throw new Error("expected NdselError");
 }
 
 test("kind dispatch errors", () => {

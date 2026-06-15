@@ -1,4 +1,4 @@
-import { NdsqError, Reason } from "./errors.ts";
+import { NdselError, Reason } from "./errors.ts";
 
 /**
  * An index integer. Values within the JS safe-integer range are `number`;
@@ -42,7 +42,7 @@ export function floorDivBig(a: bigint, s: bigint): bigint {
 
 function checkI64(x: bigint, what: string): Int {
   if (x < I64_MIN || x > I64_MAX) {
-    throw new NdsqError(Reason.InvalidJson, `${what} value ${x} is out of 64-bit signed range`);
+    throw new NdselError(Reason.InvalidJson, `${what} value ${x} is out of 64-bit signed range`);
   }
   return demote(x);
 }
@@ -51,13 +51,13 @@ export function parseIndexValue(raw: unknown): IndexValue {
   if (typeof raw === "bigint") return checkI64(raw, "index");
   if (typeof raw === "number" && Number.isSafeInteger(raw)) return raw;
   if (raw === "-inf" || raw === "+inf") return raw;
-  throw new NdsqError(Reason.InvalidJson, `invalid index value: ${JSON.stringify(raw)}`);
+  throw new NdselError(Reason.InvalidJson, `invalid index value: ${JSON.stringify(raw)}`);
 }
 
 export function parseBound(raw: unknown): ParsedBound {
   if (Array.isArray(raw)) {
     if (raw.length !== 1) {
-      throw new NdsqError(Reason.InvalidJson, "implicit bound must be a 1-element array");
+      throw new NdselError(Reason.InvalidJson, "implicit bound must be a 1-element array");
     }
     return { value: parseIndexValue(raw[0]), implicit: true };
   }
@@ -72,12 +72,12 @@ export function boundToJSON(b: ParsedBound): BoundJson {
 export function requireInt(raw: unknown, what: string): Int {
   if (typeof raw === "bigint") return checkI64(raw, what);
   if (typeof raw === "number" && Number.isSafeInteger(raw)) return raw;
-  throw new NdsqError(Reason.InvalidJson, `${what} must be an integer, got ${JSON.stringify(raw)}`);
+  throw new NdselError(Reason.InvalidJson, `${what} must be an integer, got ${JSON.stringify(raw)}`);
 }
 
 export function requireArray(raw: unknown, what: string): unknown[] {
   if (Array.isArray(raw)) return raw;
-  throw new NdsqError(Reason.InvalidJson, `${what} must be an array, got ${JSON.stringify(raw)}`);
+  throw new NdselError(Reason.InvalidJson, `${what} must be an array, got ${JSON.stringify(raw)}`);
 }
 
 export function requireIntArray(raw: unknown, what: string): Int[] {
@@ -87,7 +87,7 @@ export function requireIntArray(raw: unknown, what: string): Int[] {
 export function requireStringArray(raw: unknown, what: string): string[] {
   return requireArray(raw, what).map((v, i) => {
     if (typeof v !== "string") {
-      throw new NdsqError(Reason.InvalidJson, `${what}[${i}] must be a string, got ${JSON.stringify(v)}`);
+      throw new NdselError(Reason.InvalidJson, `${what}[${i}] must be a string, got ${JSON.stringify(v)}`);
     }
     return v;
   });

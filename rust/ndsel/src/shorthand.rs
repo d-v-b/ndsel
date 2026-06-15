@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::domain::{Domain, RawDomain};
-use crate::error::NdsqError;
+use crate::error::NdselError;
 use crate::output::OutputMap;
 use crate::transform::{from_parts, Transform};
 use crate::value::{ImplicitValue, IndexValue};
@@ -13,7 +13,7 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn desugar(self) -> Result<Transform, NdsqError> {
+    pub fn desugar(self) -> Result<Transform, NdselError> {
         let domain = Domain {
             rank: 0,
             inclusive_min: vec![],
@@ -37,7 +37,7 @@ pub struct BoxSel {
 }
 
 impl BoxSel {
-    pub fn desugar(self) -> Result<Transform, NdsqError> {
+    pub fn desugar(self) -> Result<Transform, NdselError> {
         let domain = self.domain.into_domain()?;
         let output = (0..domain.rank)
             .map(|k| OutputMap::SingleInputDimension { offset: 0, stride: 1, input_dimension: k })
@@ -64,10 +64,10 @@ pub struct Points {
 }
 
 impl Slice {
-    pub fn desugar(self) -> Result<Transform, NdsqError> {
+    pub fn desugar(self) -> Result<Transform, NdselError> {
         let rank = self.start.len();
         if self.stop.len() != rank {
-            return Err(NdsqError::new(
+            return Err(NdselError::new(
                 crate::error::Reason::RankMismatch,
                 "start and stop must have equal length",
             ));
@@ -75,7 +75,7 @@ impl Slice {
         let step: Vec<i64> = match self.step {
             Some(s) => {
                 if s.len() != rank {
-                    return Err(NdsqError::new(
+                    return Err(NdselError::new(
                         crate::error::Reason::RankMismatch,
                         "step length must match start/stop",
                     ));
@@ -86,7 +86,7 @@ impl Slice {
         };
         if let Some(labels) = &self.labels {
             if labels.len() != rank {
-                return Err(NdsqError::new(
+                return Err(NdselError::new(
                     crate::error::Reason::RankMismatch,
                     "labels length must match start/stop",
                 ));
@@ -100,10 +100,10 @@ impl Slice {
         for k in 0..rank {
             let (a, b, s) = (self.start[k], self.stop[k], step[k]);
             if s == 0 {
-                return Err(NdsqError::new(crate::error::Reason::StepZero, "step must be non-zero"));
+                return Err(NdselError::new(crate::error::Reason::StepZero, "step must be non-zero"));
             }
             if s < 0 {
-                return Err(NdsqError::new(
+                return Err(NdselError::new(
                     crate::error::Reason::NegativeStepUnsupported,
                     "negative step is not yet specified",
                 ));
@@ -133,13 +133,13 @@ fn ceil_div(p: i64, q: i64) -> i64 {
 }
 
 impl Points {
-    pub fn desugar(self) -> Result<Transform, NdsqError> {
+    pub fn desugar(self) -> Result<Transform, NdselError> {
         let m = self.coords.len();
         // Output rank = point dimensionality (0 if there are no points).
         let n = self.coords.first().map(|p| p.len()).unwrap_or(0);
         for p in &self.coords {
             if p.len() != n {
-                return Err(NdsqError::new(
+                return Err(NdselError::new(
                     crate::error::Reason::RankMismatch,
                     "all points must have equal dimensionality",
                 ));

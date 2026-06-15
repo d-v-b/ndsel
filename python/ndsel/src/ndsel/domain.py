@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .errors import NdsqError, Reason
+from .errors import NdselError, Reason
 from .messages import DomainFields
 from .values import ImplicitValue, require_int, require_list, require_str_list
 
@@ -66,11 +66,11 @@ def canonicalize_domain(
     if rank is not None:
         rank = require_int(rank, "rank")
         if rank < 0:
-            raise NdsqError(Reason.INVALID_JSON, f"rank must be non-negative, got {rank}")
+            raise NdselError(Reason.INVALID_JSON, f"rank must be non-negative, got {rank}")
 
     upper_count = (emax is not None) + (incmax is not None) + (shp is not None)
     if upper_count > 1:
-        raise NdsqError(
+        raise NdselError(
             Reason.MULTIPLE_UPPER_BOUNDS,
             "specify only one of exclusive_max / inclusive_max / shape",
         )
@@ -80,7 +80,7 @@ def canonicalize_domain(
         if arr is None:
             continue
         if resolved_rank is not None and resolved_rank != len(arr):
-            raise NdsqError(
+            raise NdselError(
                 Reason.RANK_MISMATCH,
                 f"array length {len(arr)} disagrees with rank {resolved_rank}",
             )

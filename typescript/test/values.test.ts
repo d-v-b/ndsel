@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NdsqError } from "../src/errors.ts";
+import { NdselError } from "../src/errors.ts";
 import { boundToJSON, parseBound, parseIndexValue, requireInt, requireIntArray, requireStringArray } from "../src/values.ts";
 
 test("parseIndexValue accepts ints and sentinels", () => {
@@ -10,9 +10,9 @@ test("parseIndexValue accepts ints and sentinels", () => {
 });
 
 test("parseIndexValue rejects bool, float, and garbage", () => {
-  assert.throws(() => parseIndexValue(true), NdsqError);
-  assert.throws(() => parseIndexValue(1.5), NdsqError);
-  assert.throws(() => parseIndexValue("nope"), NdsqError);
+  assert.throws(() => parseIndexValue(true), NdselError);
+  assert.throws(() => parseIndexValue(1.5), NdselError);
+  assert.throws(() => parseIndexValue("nope"), NdselError);
 });
 
 test("bare value is explicit, bracket is implicit", () => {
@@ -22,7 +22,7 @@ test("bare value is explicit, bracket is implicit", () => {
 });
 
 test("multi-element bracket is invalid", () => {
-  assert.throws(() => parseBound([1, 2]), NdsqError);
+  assert.throws(() => parseBound([1, 2]), NdselError);
 });
 
 test("boundToJSON round-trips explicit and implicit", () => {
@@ -33,10 +33,10 @@ test("boundToJSON round-trips explicit and implicit", () => {
 
 test("require validators", () => {
   assert.equal(requireInt(3, "x"), 3);
-  assert.throws(() => requireInt(true, "x"), NdsqError);
+  assert.throws(() => requireInt(true, "x"), NdselError);
   assert.deepEqual(requireIntArray([1, 2], "x"), [1, 2]);
-  assert.throws(() => requireIntArray(5, "x"), NdsqError);
-  assert.throws(() => requireIntArray([true], "x"), NdsqError);
+  assert.throws(() => requireIntArray(5, "x"), NdselError);
+  assert.throws(() => requireIntArray([true], "x"), NdselError);
   assert.deepEqual(requireStringArray(["a", ""], "x"), ["a", ""]);
-  assert.throws(() => requireStringArray([1], "x"), NdsqError);
+  assert.throws(() => requireStringArray([1], "x"), NdselError);
 });

@@ -1,4 +1,4 @@
-import { NdsqError, Reason } from "./errors.ts";
+import { NdselError, Reason } from "./errors.ts";
 import { canonicalizeDomain } from "./domain.ts";
 import type { BoxMessage, PointMessage, PointsMessage, SliceMessage } from "./messages.ts";
 import type { OutputMapJson } from "./output.ts";
@@ -41,13 +41,13 @@ export function desugarSlice(msg: SliceMessage): Transform {
   const stop = requireIntArray(m.stop, "slice.stop");
   const rank = start.length;
   if (stop.length !== rank) {
-    throw new NdsqError(Reason.RankMismatch, "start and stop must have equal length");
+    throw new NdselError(Reason.RankMismatch, "start and stop must have equal length");
   }
   let step = start.map(() => 1n);
   if (m.step !== undefined) {
     const raw = requireIntArray(m.step, "slice.step");
     if (raw.length !== rank) {
-      throw new NdsqError(Reason.RankMismatch, "step length must match start/stop");
+      throw new NdselError(Reason.RankMismatch, "step length must match start/stop");
     }
     step = raw.map(toBig);
   }
@@ -55,7 +55,7 @@ export function desugarSlice(msg: SliceMessage): Transform {
   if (m.labels !== undefined) {
     labels = requireStringArray(m.labels, "slice.labels");
     if (labels.length !== rank) {
-      throw new NdsqError(Reason.RankMismatch, "labels length must match start/stop");
+      throw new NdselError(Reason.RankMismatch, "labels length must match start/stop");
     }
   }
 
@@ -66,8 +66,8 @@ export function desugarSlice(msg: SliceMessage): Transform {
     const a = toBig(start[k]);
     const b = toBig(stop[k]);
     const s = step[k];
-    if (s === 0n) throw new NdsqError(Reason.StepZero, "step must be non-zero");
-    if (s < 0n) throw new NdsqError(Reason.NegativeStepUnsupported, "negative step is not yet specified");
+    if (s === 0n) throw new NdselError(Reason.StepZero, "step must be non-zero");
+    if (s < 0n) throw new NdselError(Reason.NegativeStepUnsupported, "negative step is not yet specified");
     const count = b <= a ? 0n : (b - a + s - 1n) / s; // ceil((b-a)/s) for s>0
     const o = floorDivBig(a, s); // floor(a/s) for s > 0
     const offset = a - s * o; // lattice phase in [0, s)
@@ -92,7 +92,7 @@ export function desugarPoints(msg: PointsMessage): Transform {
   const n = coords.length > 0 ? coords[0].length : 0;
   for (const p of coords) {
     if (p.length !== n) {
-      throw new NdsqError(Reason.RankMismatch, "all points must have equal dimensionality");
+      throw new NdselError(Reason.RankMismatch, "all points must have equal dimensionality");
     }
   }
 

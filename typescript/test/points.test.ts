@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NdsqError } from "../src/errors.ts";
+import { NdselError } from "../src/errors.ts";
 import { normalize, parse } from "../src/index.ts";
 
 function norm(text: string): Record<string, unknown> {
@@ -27,6 +27,6 @@ test("empty points", () => {
 test("ragged points is rank_mismatch", () => {
   assert.throws(
     () => normalize(parse('{"kind": "points", "coords": [[1, 2], [3]]}')),
-    (e) => e instanceof NdsqError && e.reason === "rank_mismatch",
+    (e) => e instanceof NdselError && e.reason === "rank_mismatch",
   );
 });

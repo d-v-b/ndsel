@@ -3,11 +3,11 @@
 import pytest
 
 from ndsel import normalize, parse
-from ndsel.errors import NdsqError, Reason
+from ndsel.errors import NdselError, Reason
 
 
 def reject(text: str) -> Reason:
-    with pytest.raises(NdsqError) as e:
+    with pytest.raises(NdselError) as e:
         normalize(parse(text))
     return e.value.reason
 
