@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-`ndsel` ("n-dimensional spatial query") defines a **JSON-serializable representation of array indexing operations**: given an n-dimensional integer index space, a message denotes a **subset of points together with how those points are arranged in a result array**.
+`ndsel` ("n-dimensional spatial selection") defines a **JSON-serializable representation of array indexing operations**: given an n-dimensional integer index space, a message denotes a **subset of points together with how those points are arranged in a result array**.
 
 The same selection can often be expressed many ways. An explicit enumeration of points is always available but expensive (it scales with the number of points selected). So `ndsel` provides a small ladder of **shorthand message formats** that express structured selections compactly, falling back to explicit enumeration only when the selection has no exploitable structure.
 

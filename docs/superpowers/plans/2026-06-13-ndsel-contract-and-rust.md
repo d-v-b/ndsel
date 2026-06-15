@@ -1155,7 +1155,7 @@ pub use output::OutputMap;
 pub use transform::Transform;
 pub use value::{ImplicitValue, IndexValue};
 
-/// A spatial-query message, discriminated by its `kind`.
+/// A spatial-selection message, discriminated by its `kind`.
 ///
 /// Deliberately NOT a `#[serde(tag = "kind")]` enum: internally-tagged enums
 /// combine poorly with `#[serde(flatten)]` (used by `BoxSel`). `parse` peeks

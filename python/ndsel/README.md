@@ -1,6 +1,6 @@
 # ndsel
 
-Python peer implementation of **ndsel** — a JSON-serializable representation of n-dimensional array indexing ("spatial query"). It passes the same shared conformance corpus as the Rust reference.
+Python peer implementation of **ndsel** — a JSON-serializable representation of n-dimensional array indexing ("spatial selection"). It passes the same shared conformance corpus as the Rust reference.
 
 ## Two-layer model
 

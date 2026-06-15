@@ -1,6 +1,6 @@
 # ndsel — TypeScript
 
-The TypeScript peer implementation of **ndsel** (a JSON-serializable representation of n-dimensional array indexing / "spatial query"), passing the same shared conformance corpus as the Rust and Python references.
+The TypeScript peer implementation of **ndsel** (a JSON-serializable representation of n-dimensional array indexing / "spatial selection"), passing the same shared conformance corpus as the Rust and Python references.
 
 ## Design: hybrid snake_case wire + camelCase builders
 

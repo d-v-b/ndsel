@@ -1,10 +1,10 @@
-# ndsel — n-dimensional spatial query
+# ndsel — n-dimensional spatial selection
 
 **ndsel** is a JSON-serializable representation of n-dimensional array indexing
 operations. A message denotes a *subset of grid points* (which points are
 selected from a source array) plus *how those points are arranged in the result
 array* (their output coordinate frame). The name stands for "n-dimensional
-spatial query".
+spatial selection".
 
 ndsel adapts the index model of
 [TensorStore](https://google.github.io/tensorstore/index_space.html).
