@@ -1,10 +1,10 @@
 import pytest
 
-from ndsel import normalize, parse
+from ndsel import NormalizedTransform, normalize, parse
 from ndsel.errors import NdsqError, Reason
 
 
-def norm(text: str) -> dict:
+def norm(text: str) -> NormalizedTransform:
     return normalize(parse(text)).to_dict()
 
 

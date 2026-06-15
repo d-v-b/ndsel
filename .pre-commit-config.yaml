@@ -1,0 +1,15 @@
+# Managed with prek (https://github.com/j178/prek), a drop-in pre-commit runner.
+# Enable once per clone:  prek install
+# Run on demand:          prek run --all-files
+repos:
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright (ndsel python types)
+        # Type-check the Python package in its own uv environment so the hook
+        # is reproducible regardless of what is on the caller's PATH/venv.
+        # --project points pyright at python/ndsel/pyproject.toml ([tool.pyright]).
+        entry: uv run --project python/ndsel pyright --project python/ndsel
+        language: system
+        pass_filenames: false
+        files: ^python/ndsel/.*\.py$

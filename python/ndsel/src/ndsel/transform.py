@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
-from .messages import NormalizedTransform, TransformMessage
+from .messages import NormalizedTransform
 from .output import OutputMap, SingleInputDimension, canonicalize_output_map, output_map_to_json
 from .values import require_list
 
@@ -29,8 +29,17 @@ def identity_output(rank: int) -> list[OutputMap]:
     return [SingleInputDimension(offset=0, stride=1, input_dimension=k) for k in range(rank)]
 
 
-def canonicalize_transform(msg: TransformMessage) -> Transform:
-    """Canonicalize a `transform` message body (uses the input_-prefixed field names)."""
+def canonicalize_transform(msg: Mapping[str, object]) -> Transform:
+    """Canonicalize a `transform` message body (uses the input_-prefixed field names).
+
+    ``msg`` is a read-only Mapping rather than a concrete TypedDict on purpose: this
+    canonicalizes a transform *body* and accepts several structurally different shapes —
+    the wire `TransformMessage` `normalize` passes (``kind`` present), the kind-less
+    `NormalizedTransform` it emits (re-fed for idempotency), and partial bodies. TypedDict
+    assignability requires the source to declare a superset of the target's keys, so no
+    single TypedDict is a supertype of all three; a read-only Mapping is. ``kind`` is never
+    read here.
+    """
     domain = canonicalize_domain(
         rank=msg.get("input_rank"),
         inclusive_min=msg.get("input_inclusive_min"),

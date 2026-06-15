@@ -1,8 +1,8 @@
-from ndsel import normalize, parse
+from ndsel import NormalizedTransform, normalize, parse
 from ndsel.builders import Box
 
 
-def norm(text: str) -> dict:
+def norm(text: str) -> NormalizedTransform:
     return normalize(parse(text)).to_dict()
 
 
