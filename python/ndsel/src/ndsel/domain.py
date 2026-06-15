@@ -17,7 +17,7 @@ class Domain:
     exclusive_max: list[ImplicitValue]
     labels: list[str]
 
-    def to_json_fields(self) -> dict:
+    def to_json_fields(self) -> dict[str, object]:
         return {
             "input_rank": self.rank,
             "input_inclusive_min": [v.to_json() for v in self.inclusive_min],
@@ -43,12 +43,12 @@ def _add_shape(lo: ImplicitValue, sz: ImplicitValue) -> ImplicitValue:
 
 def canonicalize_domain(
     *,
-    rank: int | None = None,
-    inclusive_min: list | None = None,
-    exclusive_max: list | None = None,
-    inclusive_max: list | None = None,
-    shape: list | None = None,
-    labels: list | None = None,
+    rank: object | None = None,
+    inclusive_min: object | None = None,
+    exclusive_max: object | None = None,
+    inclusive_max: object | None = None,
+    shape: object | None = None,
+    labels: object | None = None,
 ) -> Domain:
     """Reduce raw JSON-level domain fields to a canonical Domain."""
 

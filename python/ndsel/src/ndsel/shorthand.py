@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from .domain import Domain, canonicalize_domain
 from .errors import NdsqError, Reason
-from .output import ConstantMap, IndexArrayMap, SingleInputDimension
+from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .transform import Transform
 from .values import ImplicitValue, require_int_list, require_list, require_str_list
 
 
-def desugar_point(msg: dict) -> Transform:
+def desugar_point(msg: Mapping[str, object]) -> Transform:
     coords = require_int_list(msg.get("coords"), "point.coords")
     domain = Domain(rank=0, inclusive_min=[], exclusive_max=[], labels=[])
     output = [ConstantMap(offset=c) for c in coords]
     return Transform(domain=domain, output=output)
 
 
-def desugar_box(msg: dict) -> Transform:
+def desugar_box(msg: Mapping[str, object]) -> Transform:
     domain = canonicalize_domain(
         inclusive_min=msg.get("inclusive_min"),
         exclusive_max=msg.get("exclusive_max"),
@@ -33,7 +35,7 @@ def _ceil_div(p: int, q: int) -> int:
     return (p + q - 1) // q
 
 
-def desugar_slice(msg: dict) -> Transform:
+def desugar_slice(msg: Mapping[str, object]) -> Transform:
     start = require_int_list(msg.get("start"), "slice.start")
     stop = require_int_list(msg.get("stop"), "slice.stop")
     rank = len(start)
@@ -56,7 +58,7 @@ def desugar_slice(msg: dict) -> Transform:
 
     inclusive_min: list[ImplicitValue] = []
     exclusive_max: list[ImplicitValue] = []
-    output: list = []
+    output: list[OutputMap] = []
     for k in range(rank):
         a, b, s = start[k], stop[k], step[k]
         if s == 0:
@@ -75,7 +77,7 @@ def desugar_slice(msg: dict) -> Transform:
     return Transform(domain=domain, output=output)
 
 
-def desugar_points(msg: dict) -> Transform:
+def desugar_points(msg: Mapping[str, object]) -> Transform:
     raw_coords = require_list(msg.get("coords"), "points.coords")
     coords = [require_int_list(p, f"points.coords[{i}]") for i, p in enumerate(raw_coords)]
     m = len(coords)
@@ -90,7 +92,7 @@ def desugar_points(msg: dict) -> Transform:
         exclusive_max=[ImplicitValue.explicit(m)],
         labels=[""],
     )
-    output: list = []
+    output: list[OutputMap] = []
     for k in range(n):
         column = [coords[i][k] for i in range(m)]
         output.append(IndexArrayMap(offset=0, stride=1, index_array=column, bounds=("-inf", "+inf")))

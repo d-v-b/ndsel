@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from .domain import Domain, canonicalize_domain
@@ -14,9 +15,9 @@ class Transform:
     """The canonical core. Serialize with `to_dict()` (the bare transform body, no `kind`)."""
 
     domain: Domain
-    output: list[OutputMap]
+    output: Sequence[OutputMap]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         body = self.domain.to_json_fields()
         body["output"] = [output_map_to_json(m) for m in self.output]
         return body
@@ -26,7 +27,7 @@ def identity_output(rank: int) -> list[OutputMap]:
     return [SingleInputDimension(offset=0, stride=1, input_dimension=k) for k in range(rank)]
 
 
-def canonicalize_transform(msg: dict) -> Transform:
+def canonicalize_transform(msg: Mapping[str, object]) -> Transform:
     """Canonicalize a `transform` message body (uses the input_-prefixed field names)."""
     domain = canonicalize_domain(
         rank=msg.get("input_rank"),

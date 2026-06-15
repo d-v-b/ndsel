@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Union
 
 from .errors import NdsqError, Reason
 from .values import IndexValue, parse_index_value, require_int
@@ -25,14 +25,14 @@ class SingleInputDimension:
 class IndexArrayMap:
     offset: int
     stride: int
-    index_array: Any  # raw nested JSON; deep validation deferred
+    index_array: object  # raw nested JSON; deep validation deferred
     bounds: tuple[IndexValue, IndexValue]
 
 
 OutputMap = Union[ConstantMap, SingleInputDimension, IndexArrayMap]
 
 
-def canonicalize_output_map(raw: dict) -> OutputMap:
+def canonicalize_output_map(raw: object) -> OutputMap:
     """Default-fill and discriminate a raw output-map object."""
     if not isinstance(raw, dict):
         raise NdsqError(Reason.INVALID_JSON, f"output map must be an object, got {raw!r}")
@@ -52,7 +52,7 @@ def canonicalize_output_map(raw: dict) -> OutputMap:
     return ConstantMap(offset=offset)
 
 
-def output_map_to_json(m: OutputMap) -> dict:
+def output_map_to_json(m: OutputMap) -> dict[str, object]:
     if isinstance(m, ConstantMap):
         return {"offset": m.offset}
     if isinstance(m, SingleInputDimension):

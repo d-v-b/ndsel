@@ -44,7 +44,7 @@ def require_int_list(raw: object, what: str) -> list[int]:
     return [require_int(v, f"{what}[{i}]") for i, v in enumerate(raw)]
 
 
-def require_list(raw: object, what: str) -> list:
+def require_list(raw: object, what: str) -> list[object]:
     """Validate that a JSON value is an array (element types checked by the caller)."""
     if not isinstance(raw, list):
         raise NdsqError(Reason.INVALID_JSON, f"{what} must be an array, got {raw!r}")
@@ -53,11 +53,12 @@ def require_list(raw: object, what: str) -> list:
 
 def require_str_list(raw: object, what: str) -> list[str]:
     """Validate that a JSON value is an array of strings."""
-    items = require_list(raw, what)
-    for i, v in enumerate(items):
+    result: list[str] = []
+    for i, v in enumerate(require_list(raw, what)):
         if not isinstance(v, str):
             raise NdsqError(Reason.INVALID_JSON, f"{what}[{i}] must be a string, got {v!r}")
-    return items
+        result.append(v)
+    return result
 
 
 @dataclass(frozen=True)
