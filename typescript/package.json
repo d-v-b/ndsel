@@ -6,12 +6,13 @@
   "license": "MIT",
   "engines": { "node": ">=23.6" },
   "exports": { ".": "./src/index.ts" },
+  "files": ["src", "README.md"],
   "scripts": {
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^24",
     "ajv": "^8.17",
     "typescript": "^5.7"
   }

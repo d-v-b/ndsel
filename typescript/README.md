@@ -20,7 +20,7 @@ normalize(parse('{"kind": "slice", "start": [0], "stop": [10], "step": [2]}'));
 normalize(box({ inclusiveMin: [0, 0], exclusiveMax: [3, 4] }));
 ```
 
-The `normalize` function expands the input into a canonical `IndexTransform` (an explicit rank, label, and per-output-dimension stride/offset/input-dimension mapping):
+The `normalize` function expands the input into a canonical `Transform` (an explicit rank, label, and per-output-dimension stride/offset/input-dimension mapping — equivalent to a tensorstore `IndexTransform` body):
 
 ```
 normalize(box({ shape: [3] }))
@@ -39,3 +39,5 @@ npm run typecheck
 ```
 
 Requires **Node ≥ 23.6**: TypeScript source files run natively — no build step.
+
+> **Integer range.** Index values are JavaScript `number`s (IEEE-754 doubles), so coordinates beyond `2^53` lose precision. The spec's canonical range is 64-bit signed (`spec §3.5`); values within `±2^53` — which covers all practical array indexing — are exact and agree with the Rust/Python references.
