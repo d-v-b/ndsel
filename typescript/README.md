@@ -20,7 +20,7 @@ normalize(parse('{"kind": "slice", "start": [0], "stop": [10], "step": [2]}'));
 normalize(box({ inclusiveMin: [0, 0], exclusiveMax: [3, 4] }));
 ```
 
-The `normalize` function expands the input into a canonical `Transform` (an explicit rank, label, and per-output-dimension stride/offset/input-dimension mapping — equivalent to a tensorstore `IndexTransform` body):
+The `normalize` function expands the input into a canonical `Transform` (an explicit rank, label, and per-output-dimension stride/offset/input-dimension mapping — equivalent to a TensorStore `IndexTransform` body):
 
 ```
 normalize(box({ shape: [3] }))
@@ -29,7 +29,7 @@ normalize(box({ shape: [3] }))
 
 ## Specification and conformance
 
-The index model adapts [tensorstore's index transform](../spec/ndsel.md). The implementation is validated against the shared corpus in [`../conformance/`](../conformance/).
+The index model adapts [TensorStore's index transform](../spec/ndsel.md). The implementation is validated against the shared corpus in [`../conformance/`](../conformance/).
 
 ## Develop
 

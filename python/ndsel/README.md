@@ -29,7 +29,7 @@ The smoke-test output for a unit box:
 
 ## Index model
 
-ndsel adapts [tensorstore's index model](../../spec/ndsel.md). All inputs are normalized to a canonical `Transform` that matches the spec.
+ndsel adapts [TensorStore's index model](../../spec/ndsel.md). All inputs are normalized to a canonical `Transform` that matches the spec.
 
 ## Validation
 

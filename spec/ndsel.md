@@ -18,7 +18,7 @@ The arrangement is a genuine choice, not a formality. The same points may be kep
 
 This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space ([section 2.2](#22-selected-points-keep-their-source-coordinates)). What a message lays out is the *result*: how the selected points fill the new array.
 
-The canonical representation is the `transform` kind ([section 4](#4-the-canonical-core-kind-transform)), borrowed from tensorstore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
+The canonical representation is the `transform` kind ([section 4](#4-the-canonical-core-kind-transform)), borrowed from TensorStore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
 
 ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
@@ -68,22 +68,22 @@ The same array can be addressed with the other shorthands, each compact for its 
 
 ---
 
-## 2. Relationship to tensorstore
+## 2. Relationship to TensorStore
 
-ndsel **adapts the index model of Google's [tensorstore](https://google.github.io/tensorstore/)**. tensorstore's `IndexTransform` — an input domain plus a closed set of output index-map kinds — covers affine slicing, transposition, new axes, and arbitrary point selection uniformly. ndsel takes this model as its rigorous canonical core and keeps tensorstore's **exact field names** for the `transform` kind (`input_inclusive_min`, `input_exclusive_max`, `output`, `offset`, `stride`, `input_dimension`, `index_array`, `index_array_bounds`, …).
+ndsel **adapts the index model of Google's [tensorstore](https://google.github.io/tensorstore/)**. TensorStore's `IndexTransform` — an input domain plus a closed set of output index-map kinds — covers affine slicing, transposition, new axes, and arbitrary point selection uniformly. ndsel takes this model as its rigorous canonical core and keeps TensorStore's **exact field names** for the `transform` kind (`input_inclusive_min`, `input_exclusive_max`, `output`, `offset`, `stride`, `input_dimension`, `index_array`, `index_array_bounds`, …).
 
 ### 2.1 The one structural difference: the `kind` discriminator
 
-ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`transform`), so every message carries a `kind` string field. tensorstore's `IndexTransform` is a single type with no such field. This is the **only** structural difference between an ndsel `transform` and a tensorstore `IndexTransform`:
+ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`transform`), so every message carries a `kind` string field. TensorStore's `IndexTransform` is a single type with no such field. This is the **only** structural difference between an ndsel `transform` and a TensorStore `IndexTransform`:
 
-- **ndsel → tensorstore:** the normalized `transform` body ([section 4.3](#43-canonical-normalized-form)) is, field-for-field, a tensorstore `IndexTransform` *except* for the `kind` member. Because tensorstore's JSON binding is strict about unrecognized members, **strip `kind`** at the boundary, after which the body loads as an ordinary `IndexTransform`.
-- **tensorstore → ndsel:** a raw `IndexTransform` has no `kind`; **add `kind: "transform"`** to present it to ndsel's `parse`.
+- **ndsel → TensorStore:** the normalized `transform` body ([section 4.3](#43-canonical-normalized-form)) is, field-for-field, a TensorStore `IndexTransform` *except* for the `kind` member. Because TensorStore's JSON binding is strict about unrecognized members, **strip `kind`** at the boundary, after which the body loads as an ordinary `IndexTransform`.
+- **TensorStore → ndsel:** a raw `IndexTransform` has no `kind`; **add `kind: "transform"`** to present it to ndsel's `parse`.
 
-The shorthands (`point`/`box`/`slice`/`points`) are ndsel's own; tensorstore has no JSON encoding for them. They merely desugar to ordinary `transform`s.
+The shorthands (`point`/`box`/`slice`/`points`) are ndsel's own; TensorStore has no JSON encoding for them. They merely desugar to ordinary `transform`s.
 
 ### 2.2 Selected points keep their source coordinates
 
-Because a message **selects** existing points rather than transforming them, a selected point keeps the coordinate it had in the source. The result is therefore *anchored to the source frame*, not renumbered to a fresh 0-based index space: selecting `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. (This is also tensorstore's convention; the renumbering ndsel avoids is **NumPy's**, which re-bases sliced axes to origin 0.) Re-basing a result to origin 0 MUST be requested explicitly via a `transform`; no shorthand does it implicitly.
+Because a message **selects** existing points rather than transforming them, a selected point keeps the coordinate it had in the source. The result is therefore *anchored to the source frame*, not renumbered to a fresh 0-based index space: selecting `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. (This is also TensorStore's convention; the renumbering ndsel avoids is **NumPy's**, which re-bases sliced axes to origin 0.) Re-basing a result to origin 0 MUST be requested explicitly via a `transform`; no shorthand does it implicitly.
 
 A direct consequence: a `box` — which selects a contiguous block and reorders nothing — desugars to **identity** output maps. The points it selects are exactly where they were, so the canonical form is a pure domain restriction with no coordinate mapping at all. Genuine *rearrangement* (reordering or inserting axes) is available, but only through the `transform` kind; the shorthands never rearrange.
 
@@ -105,7 +105,7 @@ A bound wrapped in a single-element JSON array — `[n]`, `["-inf"]`, or `["+inf
 
 ### 3.4 Rank
 
-The input rank of a `transform` is a non-negative integer. The 32-dimension ceiling is a tensorstore *implementation* constraint, not a property of this format: implementations that interoperate with tensorstore SHOULD reject ranks greater than 32, but ndsel itself imposes no upper bound.
+The input rank of a `transform` is a non-negative integer. The 32-dimension ceiling is a TensorStore *implementation* constraint, not a property of this format: implementations that interoperate with TensorStore SHOULD reject ranks greater than 32, but ndsel itself imposes no upper bound.
 
 ### 3.5 Integer value range
 
@@ -131,7 +131,7 @@ A value whose JSON type does not match the type required by a field MUST be reje
 
 ### 4.1 The `transform` message
 
-A `transform` message is a JSON object. All members except `kind` follow tensorstore's `IndexTransform` JSON encoding.
+A `transform` message is a JSON object. All members except `kind` follow TensorStore's `IndexTransform` JSON encoding.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
@@ -148,7 +148,7 @@ A `transform` message is a JSON object. All members except `kind` follow tensors
 
 ### 4.2 Output maps
 
-An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches tensorstore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
+An output map is **not tagged**. Unlike a message (which carries a `kind`), a map's kind is determined by **which fields are present**. This matches TensorStore's `IndexTransform` encoding, so the canonical body stays a loadable `IndexTransform` ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)); and it is unambiguous because the three kinds are distinguished by genuinely different content — a map either consumes an input dimension, or looks up an array, or is constant — so the distinguishing field *is* the natural marker rather than a redundant tag. A map MUST NOT carry both `input_dimension` and `index_array`.
 
 The kind is selected by this rule, in order:
 
@@ -185,7 +185,7 @@ Each kind's fields:
 
 ### 4.3 Canonical (normalized) form
 
-`normalize(message) → transform` MUST accept all the redundancies of [section 4.1](#41-the-transform-message)–[section 4.2](#42-output-maps) and emit exactly one deterministic spelling. The result is the **bare canonical transform body** — the input-domain fields plus the explicit `output`. It does **not** carry a `kind` field (`kind` is a discriminator on *input messages* only; its omission is what makes the body a tensorstore-loadable `IndexTransform`, [section 2.1](#21-the-one-structural-difference-the-kind-discriminator)). The normalized body MUST satisfy:
+`normalize(message) → transform` MUST accept all the redundancies of [section 4.1](#41-the-transform-message)–[section 4.2](#42-output-maps) and emit exactly one deterministic spelling. The result is the **bare canonical transform body** — the input-domain fields plus the explicit `output`. It does **not** carry a `kind` field (`kind` is a discriminator on *input messages* only; its omission is what makes the body a TensorStore-loadable `IndexTransform`, [section 2.1](#21-the-one-structural-difference-the-kind-discriminator)). The normalized body MUST satisfy:
 
 - `input_rank` present.
 - `input_inclusive_min` present and fully written out (no omission; per-dimension implicit/explicit flags preserved).
@@ -327,10 +327,10 @@ The following are explicitly outside the scope of ndsel v1:
 ## 10. References
 
 - **NumPy — Indexing on ndarrays.** <https://numpy.org/doc/stable/user/basics.indexing.html> — the basic-slicing and advanced-indexing semantics that ndsel represents.
-- **Google tensorstore.** <https://google.github.io/tensorstore/> — the array storage/indexing library whose index model ndsel adapts.
-- **tensorstore — Index space.** <https://google.github.io/tensorstore/index_space.html> — the `IndexTransform` / `IndexDomain` model that ndsel's canonical core ([section 4](#4-the-canonical-core-kind-transform)) adopts.
-- **tensorstore — `IndexTransform` JSON.** <https://google.github.io/tensorstore/python/api/tensorstore.IndexTransform.__init__-json.html> — the exact JSON encoding whose field names ndsel reuses for the `transform` kind.
+- **TensorStore.** <https://google.github.io/tensorstore/> — Google's array storage/indexing library whose index model ndsel adapts.
+- **TensorStore — Index space.** <https://google.github.io/tensorstore/index_space.html> — the `IndexTransform` / `IndexDomain` model that ndsel's canonical core ([section 4](#4-the-canonical-core-kind-transform)) adopts.
+- **TensorStore — `IndexTransform` JSON.** <https://google.github.io/tensorstore/python/api/tensorstore.IndexTransform.__init__-json.html> — the exact JSON encoding whose field names ndsel reuses for the `transform` kind.
 
 ---
 
-*This spec adapts the index model of Google tensorstore; see the design doc for rationale.*
+*This spec adapts the index model of Google's TensorStore; see the design doc for rationale.*
