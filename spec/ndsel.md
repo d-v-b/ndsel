@@ -7,7 +7,9 @@
 
 ## 1. Overview
 
-`ndsel` ("n-dimensional selection") is a JSON format for **selecting a subset of points from an n-dimensional integer grid**. A message specifies two things together: **which** source points are selected, and **how** those points are arranged in a new result array. The shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape and ordering.
+`ndsel` ("n-dimensional selection") is a **JSON-serializable representation of NumPy-style n-dimensional array indexing** — the indexing written as `a[3]`, `a[2:10:2]`, or `a[[1, 4, 7]]`. It turns such an expression — normally code, evaluated in-process against a single array — into **data**: one language-neutral message that can be serialized, stored, sent across a process or language boundary, and applied to any array of matching rank.
+
+Conceptually, every such index **selects a subset of points from an n-dimensional integer grid** and specifies **how** those points are arranged in a new result array. The shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape and ordering.
 
 This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space (§2.2). What a message lays out is the *result*: how the selected points fill the new array.
 
@@ -29,7 +31,7 @@ Every shorthand MUST have a normative desugaring to `transform` (§5). `transfor
 
 ### 1.1 A worked example
 
-> *"Select every other element of a length-20 1-D array, starting at index 10."*
+> *"Select every other element of a length-20 1-D array, starting at index 10."* — in NumPy, `a[10:20:2]`.
 
 That intent — selecting source indices 10, 12, 14, 16, 18 — is a strided `slice`:
 
