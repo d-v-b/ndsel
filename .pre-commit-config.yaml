@@ -13,3 +13,20 @@ repos:
         language: system
         pass_filenames: false
         files: ^python/ndsel/.*\.py$
+
+      - id: tsc
+        name: tsc (ndsel typescript types)
+        # tsc --noEmit via the package's own script; --prefix runs it in
+        # typescript/ so it picks up tsconfig.json and node_modules.
+        entry: npm --prefix typescript run --silent typecheck
+        language: system
+        pass_filenames: false
+        files: ^typescript/(src|test)/.*\.ts$|^typescript/(tsconfig|package(-lock)?)\.json$
+
+      - id: cargo-check
+        name: cargo check (ndsel rust types)
+        # --manifest-path keeps this cwd-independent; --all-targets covers tests.
+        entry: cargo check --manifest-path rust/ndsel/Cargo.toml --all-targets
+        language: system
+        pass_filenames: false
+        files: ^rust/ndsel/(src/.*\.rs|Cargo\.(toml|lock))$
