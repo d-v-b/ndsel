@@ -7,9 +7,11 @@ array* (their output coordinate frame). The name stands for "n-dimensional
 spatial query".
 
 ndsel adapts the index model of
-[Google TensorStore](https://google.github.io/tensorstore/index_space.html).
-For design rationale and the full motivation see
-[`docs/superpowers/specs/2026-06-13-ndsel-spec-design.md`](docs/superpowers/specs/2026-06-13-ndsel-spec-design.md).
+[TensorStore](https://google.github.io/tensorstore/index_space.html).
+
+## Status
+
+`ndsel` is in draft. Anything can change without warning. Use at your own risk.
 
 ## Message kinds
 
