@@ -9,11 +9,16 @@
 
 `ndsel` ("n-dimensional selection") is a **JSON-serializable representation of NumPy-style n-dimensional array indexing** — the indexing written as `a[3]`, `a[2:10:2]`, or `a[[1, 4, 7]]`. It turns such an expression — normally code, evaluated in-process against a single array — into **data**: one language-neutral message that can be serialized, stored, sent across a process or language boundary, and applied to any array of matching rank.
 
-Conceptually, every such index **selects a subset of points from an n-dimensional integer grid** and specifies **how** those points are arranged in a new result array. The shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape and ordering.
+Conceptually, every index over an n-dimensional integer grid has two parts:
+
+1. **The input selection** — *which* points of the source grid are chosen: a contiguous block, a strided lattice, an arbitrary set of points.
+2. **The output arrangement** — *how* the chosen points are laid out in the new result array.
+
+The arrangement is a genuine choice, not a formality. The same points may be kept as an n-D sub-array that preserves their relative positions — what *basic slicing* does (`a[2:5, 1:4]` → a 3×3 block) — or **linearized** into a 1-D list — what *advanced indexing* does (`a[[2,3,4], [1,2,3]]` → the points `(2,1), (3,2), (4,3)` as a length-3 vector). NumPy folds this choice into the indexing style; ndsel states it explicitly. (In the canonical form, these two parts are the transform's **input domain** and **output maps**, §4.)
 
 This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space (§2.2). What a message lays out is the *result*: how the selected points fill the new array.
 
-The canonical representation is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. It encodes both halves at once: the **input domain** says which points are selected, and the **output maps** say how they are arranged. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points laid out in their source order. Genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`; the shorthands never rearrange.
+The canonical representation is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
 
 ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
