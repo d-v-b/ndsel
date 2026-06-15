@@ -7,9 +7,11 @@
 
 ## 1. Overview
 
-`ndsel` ("n-dimensional selection") is a JSON format for **selecting a subset of points from an n-dimensional integer grid**. A message names *which* source points are selected; the shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape. A selected point keeps its source coordinate: selecting picks out existing points, it does not renumber them into a fresh index space.
+`ndsel` ("n-dimensional selection") is a JSON format for **selecting a subset of points from an n-dimensional integer grid**. A message specifies two things together: **which** source points are selected, and **how** those points are arranged in a new result array. The shape of the selection — a contiguous block, a strided lattice, an explicit list of points — gives the result its shape and ordering.
 
-The canonical representation of a selection is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. Besides bounding *which* points are selected, the canonical form can also describe how they are laid out — reordering axes, inserting degenerate ones — for advanced cases; but the act a message denotes is fundamentally **selection**, and the common kinds (`point`, `box`, `slice`, `points`) are pure selection.
+This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space (§2.2). What a message lays out is the *result*: how the selected points fill the new array.
+
+The canonical representation is the `transform` kind (§4), borrowed from tensorstore's `IndexTransform`. It encodes both halves at once: the **input domain** says which points are selected, and the **output maps** say how they are arranged. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points laid out in their source order. Genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`; the shorthands never rearrange.
 
 ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
