@@ -7,7 +7,7 @@ from .errors import NdselError, Reason
 from .messages import BoxMessage, PointMessage, PointsMessage, SliceMessage
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .transform import Transform
-from .values import ImplicitValue, require_int_list, require_list, require_str_list
+from .values import MaybeImplicitValue, require_int_list, require_list, require_str_list
 
 
 def desugar_point(msg: PointMessage) -> Transform:
@@ -55,8 +55,8 @@ def desugar_slice(msg: SliceMessage) -> Transform:
         if len(labels) != rank:
             raise NdselError(Reason.RANK_MISMATCH, "labels length must match start/stop")
 
-    inclusive_min: list[ImplicitValue] = []
-    exclusive_max: list[ImplicitValue] = []
+    inclusive_min: list[MaybeImplicitValue] = []
+    exclusive_max: list[MaybeImplicitValue] = []
     output: list[OutputMap] = []
     for k in range(rank):
         a, b, s = start[k], stop[k], step[k]
@@ -67,8 +67,8 @@ def desugar_slice(msg: SliceMessage) -> Transform:
         m = 0 if b <= a else _ceil_div(b - a, s)
         o = a // s  # floor(a/s) for s > 0
         offset = a - s * o  # lattice phase in [0, s)
-        inclusive_min.append(ImplicitValue.explicit(o))
-        exclusive_max.append(ImplicitValue.explicit(o + m))
+        inclusive_min.append(MaybeImplicitValue.explicit(o))
+        exclusive_max.append(MaybeImplicitValue.explicit(o + m))
         output.append(SingleInputDimension(offset=offset, stride=s, input_dimension=k))
 
     out_labels = labels if labels is not None else ["" for _ in range(rank)]
@@ -87,8 +87,8 @@ def desugar_points(msg: PointsMessage) -> Transform:
 
     domain = Domain(
         rank=1,
-        inclusive_min=[ImplicitValue.explicit(0)],
-        exclusive_max=[ImplicitValue.explicit(m)],
+        inclusive_min=[MaybeImplicitValue.explicit(0)],
+        exclusive_max=[MaybeImplicitValue.explicit(m)],
         labels=[""],
     )
     output: list[OutputMap] = []

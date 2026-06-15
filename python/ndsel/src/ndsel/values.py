@@ -63,7 +63,7 @@ def require_str_list(raw: object, what: str) -> list[str]:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ImplicitValue:
+class MaybeImplicitValue:
     """An index bound plus an explicit/implicit flag.
 
     JSON: a bare value is explicit (`7`, `"-inf"`); the same wrapped in a
@@ -74,11 +74,11 @@ class ImplicitValue:
     implicit: bool
 
     @classmethod
-    def explicit(cls, value: IndexValue) -> "ImplicitValue":
+    def explicit(cls, value: IndexValue) -> "MaybeImplicitValue":
         return cls(value=value, implicit=False)
 
     @classmethod
-    def from_json(cls, raw: object) -> "ImplicitValue":
+    def from_json(cls, raw: object) -> "MaybeImplicitValue":
         if isinstance(raw, list):
             if len(raw) != 1:
                 raise NdselError(Reason.INVALID_JSON, "implicit bound must be a 1-element array")

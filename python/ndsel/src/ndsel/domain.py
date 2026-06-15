@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from .errors import NdselError, Reason
 from .messages import DomainFields
-from .values import ImplicitValue, require_int, require_list, require_str_list
+from .values import MaybeImplicitValue, require_int, require_list, require_str_list
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -14,8 +14,8 @@ class Domain:
     """Per-dimension [inclusive_min, exclusive_max) plus labels."""
 
     rank: int
-    inclusive_min: list[ImplicitValue]
-    exclusive_max: list[ImplicitValue]
+    inclusive_min: list[MaybeImplicitValue]
+    exclusive_max: list[MaybeImplicitValue]
     labels: list[str]
 
     def to_json(self) -> DomainFields:
@@ -27,19 +27,19 @@ class Domain:
         }
 
 
-def _bump_inclusive_to_exclusive(v: ImplicitValue) -> ImplicitValue:
+def _bump_inclusive_to_exclusive(v: MaybeImplicitValue) -> MaybeImplicitValue:
     value = v.value + 1 if isinstance(v.value, int) else v.value
-    return ImplicitValue(value=value, implicit=v.implicit)
+    return MaybeImplicitValue(value=value, implicit=v.implicit)
 
 
-def _add_shape(lo: ImplicitValue, sz: ImplicitValue) -> ImplicitValue:
+def _add_shape(lo: MaybeImplicitValue, sz: MaybeImplicitValue) -> MaybeImplicitValue:
     if isinstance(lo.value, int) and isinstance(sz.value, int):
         value: object = lo.value + sz.value
     elif lo.value == "+inf" or sz.value == "+inf":
         value = "+inf"
     else:  # any remaining -inf operand
         value = "-inf"
-    return ImplicitValue(value=value, implicit=lo.implicit)  # type: ignore[arg-type]
+    return MaybeImplicitValue(value=value, implicit=lo.implicit)  # type: ignore[arg-type]
 
 
 def canonicalize_domain(
@@ -53,10 +53,10 @@ def canonicalize_domain(
 ) -> Domain:
     """Reduce raw JSON-level domain fields to a canonical Domain."""
 
-    def _bounds(raw: object | None, name: str) -> list[ImplicitValue] | None:
+    def _bounds(raw: object | None, name: str) -> list[MaybeImplicitValue] | None:
         if raw is None:
             return None
-        return [ImplicitValue.from_json(b) for b in require_list(raw, name)]
+        return [MaybeImplicitValue.from_json(b) for b in require_list(raw, name)]
 
     imin = _bounds(inclusive_min, "inclusive_min")
     emax = _bounds(exclusive_max, "exclusive_max")
@@ -88,7 +88,7 @@ def canonicalize_domain(
     r = resolved_rank if resolved_rank is not None else 0
 
     if imin is None:
-        imin = [ImplicitValue.explicit(0) for _ in range(r)]
+        imin = [MaybeImplicitValue.explicit(0) for _ in range(r)]
 
     if emax is not None:
         exclusive = emax
@@ -97,7 +97,7 @@ def canonicalize_domain(
     elif shp is not None:
         exclusive = [_add_shape(lo, sz) for lo, sz in zip(imin, shp)]
     else:
-        exclusive = [ImplicitValue(value="+inf", implicit=True) for _ in range(r)]
+        exclusive = [MaybeImplicitValue(value="+inf", implicit=True) for _ in range(r)]
 
     out_labels = labels if labels is not None else ["" for _ in range(r)]
     return Domain(rank=r, inclusive_min=imin, exclusive_max=exclusive, labels=out_labels)

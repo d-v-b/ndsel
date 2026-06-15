@@ -15,7 +15,7 @@ from .messages import Message, NormalizedTransform
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
 from .shorthand import desugar_box, desugar_point, desugar_points, desugar_slice
 from .transform import Transform, canonicalize_transform
-from .values import ImplicitValue, IndexValue
+from .values import MaybeImplicitValue, IndexValue
 
 __all__ = [
     "parse",
@@ -26,7 +26,7 @@ __all__ = [
     "ConstantMap",
     "SingleInputDimension",
     "IndexArrayMap",
-    "ImplicitValue",
+    "MaybeImplicitValue",
     "IndexValue",
     "Message",
     "NormalizedTransform",
