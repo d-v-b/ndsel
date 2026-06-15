@@ -17,5 +17,14 @@
       "input_rank": 0, "input_inclusive_min": [], "input_exclusive_max": [],
       "input_labels": [], "output": []
     }
+  },
+  {
+    "name": "point/large-i64",
+    "input": { "kind": "point", "coords": [1152921504606846976] },
+    "normalized": {
+      "input_rank": 0, "input_inclusive_min": [], "input_exclusive_max": [],
+      "input_labels": [],
+      "output": [ { "offset": 1152921504606846976 } ]
+    }
   }
 ]

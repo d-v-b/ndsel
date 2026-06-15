@@ -1,7 +1,7 @@
-import type { BoundJson } from "./values.ts";
+import type { BoundJson, Int } from "./values.ts";
 import type { BoxMessage, PointMessage, PointsMessage, SliceMessage } from "./messages.ts";
 
-export function point(coords: number[]): PointMessage {
+export function point(coords: Int[]): PointMessage {
   return { kind: "point", coords };
 }
 
@@ -24,9 +24,9 @@ export function box(opts: BoxOptions = {}): BoxMessage {
 }
 
 export interface SliceOptions {
-  start: number[];
-  stop: number[];
-  step?: number[];
+  start: Int[];
+  stop: Int[];
+  step?: Int[];
   labels?: string[];
 }
 
@@ -37,6 +37,6 @@ export function slice(opts: SliceOptions): SliceMessage {
   return msg;
 }
 
-export function points(coords: number[][]): PointsMessage {
+export function points(coords: Int[][]): PointsMessage {
   return { kind: "points", coords };
 }

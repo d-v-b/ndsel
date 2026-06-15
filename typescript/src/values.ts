@@ -1,7 +1,14 @@
 import { NdsqError, Reason } from "./errors.ts";
 
-/** A single index coordinate: a finite integer, or an infinity sentinel. */
-export type IndexValue = number | "-inf" | "+inf";
+/**
+ * An index integer. Values within the JS safe-integer range are `number`;
+ * values outside it (but within i64) are `bigint` (§3.5). The canonical form is
+ * representation-independent: a value is `number` iff it is a safe integer.
+ */
+export type Int = number | bigint;
+
+/** A single index coordinate: an integer, or an infinity sentinel. */
+export type IndexValue = Int | "-inf" | "+inf";
 
 /** A JSON-level bound: a value, or that value wrapped in a 1-element array (implicit). */
 export type BoundJson = IndexValue | [IndexValue];
@@ -12,8 +19,37 @@ export interface ParsedBound {
   implicit: boolean;
 }
 
+// 64-bit signed range (the canonical contract, §3.5) as bigints.
+const I64_MIN = -(2n ** 63n);
+const I64_MAX = 2n ** 63n - 1n;
+const SAFE_MAX = BigInt(Number.MAX_SAFE_INTEGER); // 2^53 - 1
+
+/** Promote an `Int` to `bigint` for arithmetic. */
+export function toBig(x: Int): bigint {
+  return typeof x === "bigint" ? x : BigInt(x);
+}
+
+/** Demote a `bigint` to `number` when it is a safe integer; keep `bigint` otherwise. */
+export function demote(x: bigint): Int {
+  return x >= -SAFE_MAX && x <= SAFE_MAX ? Number(x) : x;
+}
+
+/** Floor division `floor(a / s)` for `s > 0`, in `bigint`. */
+export function floorDivBig(a: bigint, s: bigint): bigint {
+  const q = a / s; // truncates toward zero
+  return a % s !== 0n && a < 0n ? q - 1n : q;
+}
+
+function checkI64(x: bigint, what: string): Int {
+  if (x < I64_MIN || x > I64_MAX) {
+    throw new NdsqError(Reason.InvalidJson, `${what} value ${x} is out of 64-bit signed range`);
+  }
+  return demote(x);
+}
+
 export function parseIndexValue(raw: unknown): IndexValue {
-  if (typeof raw === "number" && Number.isInteger(raw)) return raw;
+  if (typeof raw === "bigint") return checkI64(raw, "index");
+  if (typeof raw === "number" && Number.isSafeInteger(raw)) return raw;
   if (raw === "-inf" || raw === "+inf") return raw;
   throw new NdsqError(Reason.InvalidJson, `invalid index value: ${JSON.stringify(raw)}`);
 }
@@ -32,8 +68,10 @@ export function boundToJSON(b: ParsedBound): BoundJson {
   return b.implicit ? [b.value] : b.value;
 }
 
-export function requireInt(raw: unknown, what: string): number {
-  if (typeof raw === "number" && Number.isInteger(raw)) return raw;
+/** Validate a plain integer in 64-bit signed range (no sentinels). */
+export function requireInt(raw: unknown, what: string): Int {
+  if (typeof raw === "bigint") return checkI64(raw, what);
+  if (typeof raw === "number" && Number.isSafeInteger(raw)) return raw;
   throw new NdsqError(Reason.InvalidJson, `${what} must be an integer, got ${JSON.stringify(raw)}`);
 }
 
@@ -42,7 +80,7 @@ export function requireArray(raw: unknown, what: string): unknown[] {
   throw new NdsqError(Reason.InvalidJson, `${what} must be an array, got ${JSON.stringify(raw)}`);
 }
 
-export function requireIntArray(raw: unknown, what: string): number[] {
+export function requireIntArray(raw: unknown, what: string): Int[] {
   return requireArray(raw, what).map((v, i) => requireInt(v, `${what}[${i}]`));
 }
 

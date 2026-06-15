@@ -7,11 +7,13 @@
  */
 
 import { NdsqError, Reason } from "./errors.ts";
+import { parseJson, stringifyJson } from "./json.ts";
 import type { Message } from "./messages.ts";
 import { desugarBox, desugarPoint, desugarPoints, desugarSlice } from "./shorthand.ts";
 import { type Transform, canonicalizeTransform } from "./transform.ts";
 
 export { NdsqError, Reason };
+export { stringifyJson };
 export type { ReasonCode } from "./errors.ts";
 export type {
   BoxMessage,
@@ -25,16 +27,19 @@ export type {
 export type { Transform } from "./transform.ts";
 export type { OutputMapJson } from "./output.ts";
 export type { DomainFields } from "./domain.ts";
-export type { BoundJson, IndexValue } from "./values.ts";
+export type { BoundJson, IndexValue, Int } from "./values.ts";
 export { type BoxOptions, type SliceOptions, box, point, points, slice } from "./builders.ts";
 
 const KNOWN_KINDS = new Set(["point", "box", "slice", "points", "transform"]);
 
-/** Parse a JSON string and validate the `kind` discriminator. */
+/**
+ * Parse a JSON string and validate the `kind` discriminator. Integers outside
+ * the JS safe range are parsed losslessly as `bigint` (§3.5).
+ */
 export function parse(text: string): Message {
   let obj: unknown;
   try {
-    obj = JSON.parse(text);
+    obj = parseJson(text);
   } catch (err) {
     throw new NdsqError(Reason.InvalidJson, err instanceof Error ? err.message : String(err));
   }

@@ -10,12 +10,18 @@ from .errors import NdsqError, Reason
 # A single index coordinate: a finite int, or the infinity sentinels.
 IndexValue = Union[int, Literal["-inf", "+inf"]]
 
+# Canonical integer range: 64-bit signed (spec §3.5).
+I64_MIN = -(2**63)
+I64_MAX = 2**63 - 1
+
 
 def parse_index_value(raw: object) -> IndexValue:
     """Validate a JSON scalar as an IndexValue. Rejects bool (a Python int subclass)."""
     if isinstance(raw, bool):
         raise NdsqError(Reason.INVALID_JSON, f"index value must be an integer, got bool {raw!r}")
     if isinstance(raw, int):
+        if not (I64_MIN <= raw <= I64_MAX):
+            raise NdsqError(Reason.INVALID_JSON, f"index value {raw} is out of 64-bit signed range")
         return raw
     if raw == "-inf" or raw == "+inf":
         return raw  # type: ignore[return-value]
@@ -23,9 +29,11 @@ def parse_index_value(raw: object) -> IndexValue:
 
 
 def require_int(raw: object, what: str) -> int:
-    """Validate that a JSON value is a plain integer (rejecting bool and non-ints)."""
+    """Validate that a JSON value is a plain integer in 64-bit signed range (rejecting bool)."""
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise NdsqError(Reason.INVALID_JSON, f"{what} must be an integer, got {raw!r}")
+    if not (I64_MIN <= raw <= I64_MAX):
+        raise NdsqError(Reason.INVALID_JSON, f"{what} value {raw} is out of 64-bit signed range")
     return raw
 
 

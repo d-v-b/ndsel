@@ -36,3 +36,13 @@ def test_negative_rank_and_input_dimension_are_invalid_json():
         reject('{"kind": "transform", "input_shape": [2], "output": [{"input_dimension": -1}]}')
         is Reason.INVALID_JSON
     )
+
+
+def test_integer_range_is_i64():
+    # The i64 boundaries are accepted (no exception).
+    normalize(parse('{"kind": "point", "coords": [9223372036854775807, -9223372036854775808]}'))
+    # Just outside the i64 range -> invalid_json.
+    assert reject('{"kind": "point", "coords": [9223372036854775808]}') is Reason.INVALID_JSON
+    assert reject('{"kind": "point", "coords": [-9223372036854775809]}') is Reason.INVALID_JSON
+    # Also enforced on bounds.
+    assert reject('{"kind": "box", "shape": [99999999999999999999]}') is Reason.INVALID_JSON

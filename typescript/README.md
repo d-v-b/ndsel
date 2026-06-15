@@ -40,4 +40,4 @@ npm run typecheck
 
 Requires **Node ≥ 23.6**: TypeScript source files run natively — no build step.
 
-> **Integer range.** Index values are JavaScript `number`s (IEEE-754 doubles), so coordinates beyond `2^53` lose precision. The spec's canonical range is 64-bit signed (`spec §3.5`); values within `±2^53` — which covers all practical array indexing — are exact and agree with the Rust/Python references.
+> **Integer range (`number | bigint`).** Index values cover the full 64-bit signed range (`spec §3.5`). An integer within JavaScript's safe range (`±(2^53 − 1)`) is a `number`; one beyond it is a `bigint` — so `parse` reads large integer literals losslessly and `normalize` returns `bigint` for them. The `Int = number | bigint` distinction is magnitude-based, so the canonical form is representation-independent. Builders accept either (`box({ exclusiveMax: [3, 4] })` or `[3n, 4n]`). Use the exported `stringifyJson` to serialize a result, since `JSON.stringify` throws on `bigint`.

@@ -1,8 +1,8 @@
-import type { BoundJson, IndexValue } from "./values.ts";
+import type { BoundJson, IndexValue, Int } from "./values.ts";
 
 export interface PointMessage {
   kind: "point";
-  coords: number[];
+  coords: Int[];
 }
 
 export interface BoxMessage {
@@ -16,29 +16,29 @@ export interface BoxMessage {
 
 export interface SliceMessage {
   kind: "slice";
-  start: number[];
-  stop: number[];
-  step?: number[];
+  start: Int[];
+  stop: Int[];
+  step?: Int[];
   labels?: string[];
 }
 
 export interface PointsMessage {
   kind: "points";
-  coords: number[][];
+  coords: Int[][];
 }
 
 /** An output-map object as accepted on input (before default-filling). */
 export interface OutputMapInput {
-  offset?: number;
-  stride?: number;
-  input_dimension?: number;
+  offset?: Int;
+  stride?: Int;
+  input_dimension?: Int;
   index_array?: unknown;
   index_array_bounds?: [IndexValue, IndexValue];
 }
 
 export interface TransformMessage {
   kind: "transform";
-  input_rank?: number;
+  input_rank?: Int;
   input_inclusive_min?: BoundJson[];
   input_exclusive_max?: BoundJson[];
   input_inclusive_max?: BoundJson[];

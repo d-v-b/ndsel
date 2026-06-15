@@ -1,11 +1,11 @@
 import { NdsqError, Reason } from "./errors.ts";
-import { type IndexValue, parseIndexValue, requireInt } from "./values.ts";
+import { type IndexValue, type Int, parseIndexValue, requireInt } from "./values.ts";
 
 /** A canonical output map (its JSON shape). */
 export type OutputMapJson =
-  | { offset: number }
-  | { offset: number; stride: number; input_dimension: number }
-  | { offset: number; stride: number; index_array: unknown; index_array_bounds: [IndexValue, IndexValue] };
+  | { offset: Int }
+  | { offset: Int; stride: Int; input_dimension: Int }
+  | { offset: Int; stride: Int; index_array: unknown; index_array_bounds: [IndexValue, IndexValue] };
 
 export function canonicalizeOutputMap(raw: unknown): OutputMapJson {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { parseJson, stringifyJson } from "../src/json.ts";
 import { NdsqError, normalize, parse } from "../src/index.ts";
 
 const repoRoot = join(import.meta.dirname, "..", "..");
@@ -21,9 +22,11 @@ interface Fixture {
   error?: string;
 }
 
+// Parse fixtures losslessly so integers beyond 2^53 become bigint and compare
+// equal to the implementation's (also bigint) output.
 const fixtures: Fixture[] = [];
 for (const file of readdirSync(corpusDir).filter((f) => f.endsWith(".json")).sort()) {
-  for (const c of JSON.parse(readFileSync(join(corpusDir, file), "utf8")) as Fixture[]) {
+  for (const c of parseJson(readFileSync(join(corpusDir, file), "utf8")) as Fixture[]) {
     fixtures.push(c);
   }
 }
@@ -34,7 +37,7 @@ test("corpus is populated", () => {
 
 for (const fixture of fixtures) {
   test(`corpus: ${fixture.name}`, () => {
-    const input = JSON.stringify(fixture.input);
+    const input = stringifyJson(fixture.input); // re-serialize (bigint -> bare digits)
     if (fixture.error !== undefined) {
       // Error inputs may be intentionally schema-invalid; not schema-checked.
       try {
@@ -45,7 +48,9 @@ for (const fixture of fixtures) {
         assert.equal((e as NdsqError).reason, fixture.error);
       }
     } else {
-      assert.ok(validate(fixture.input), `${fixture.name}: input fails schema`);
+      // ajv validates the JSON structure (numbers); the bigint comparison is done
+      // against the implementation's output below.
+      assert.ok(validate(JSON.parse(input)), `${fixture.name}: input fails schema`);
       assert.deepStrictEqual(normalize(parse(input)), fixture.normalized);
     }
   });

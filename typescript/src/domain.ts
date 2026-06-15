@@ -4,10 +4,12 @@ import {
   type IndexValue,
   type ParsedBound,
   boundToJSON,
+  demote,
   parseBound,
   requireArray,
   requireInt,
   requireStringArray,
+  toBig,
 } from "./values.ts";
 
 export interface DomainFields {
@@ -18,15 +20,20 @@ export interface DomainFields {
 }
 
 function bumpInclusiveToExclusive(b: ParsedBound): ParsedBound {
-  const value: IndexValue = typeof b.value === "number" ? b.value + 1 : b.value;
+  const v = b.value;
+  const value: IndexValue = v === "-inf" || v === "+inf" ? v : demote(toBig(v) + 1n);
   return { value, implicit: b.implicit };
 }
 
 function addShape(lo: ParsedBound, sz: ParsedBound): ParsedBound {
+  const a = lo.value;
+  const b = sz.value;
   let value: IndexValue;
-  if (typeof lo.value === "number" && typeof sz.value === "number") value = lo.value + sz.value;
-  else if (lo.value === "+inf" || sz.value === "+inf") value = "+inf";
-  else value = "-inf";
+  if (a === "-inf" || a === "+inf" || b === "-inf" || b === "+inf") {
+    value = a === "+inf" || b === "+inf" ? "+inf" : "-inf";
+  } else {
+    value = demote(toBig(a) + toBig(b));
+  }
   return { value, implicit: lo.implicit };
 }
 
@@ -48,7 +55,8 @@ export function canonicalizeDomain(fields: RawDomainFields): DomainFields {
   const incmax = parseBounds(fields.inclusive_max, "inclusive_max");
   const shp = parseBounds(fields.shape, "shape");
   const labels = fields.labels === undefined ? null : requireStringArray(fields.labels, "labels");
-  let rank = fields.rank === undefined ? null : requireInt(fields.rank, "rank");
+  // A rank is a small dimension count; reduce to number for length comparisons.
+  let rank = fields.rank === undefined ? null : Number(requireInt(fields.rank, "rank"));
   if (rank !== null && rank < 0) {
     throw new NdsqError(Reason.InvalidJson, `rank must be non-negative, got ${rank}`);
   }

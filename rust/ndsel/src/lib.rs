@@ -89,4 +89,19 @@ mod tests {
         let err = parse(r#"{ not json"#).unwrap_err();
         assert_eq!(err.reason, Reason::InvalidJson);
     }
+
+    #[test]
+    fn integer_range_is_i64() {
+        // i64 boundaries are accepted.
+        parse(r#"{ "kind": "point", "coords": [9223372036854775807, -9223372036854775808] }"#)
+            .and_then(normalize)
+            .unwrap();
+        // Just outside i64 -> invalid_json (does not fit i64 during deserialization).
+        let err = parse(r#"{ "kind": "point", "coords": [9223372036854775808] }"#).unwrap_err();
+        assert_eq!(err.reason, Reason::InvalidJson);
+        let err = parse(r#"{ "kind": "box", "shape": [99999999999999999999] }"#)
+            .and_then(normalize)
+            .unwrap_err();
+        assert_eq!(err.reason, Reason::InvalidJson);
+    }
 }

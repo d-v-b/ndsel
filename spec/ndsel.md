@@ -64,7 +64,7 @@ The input rank of a `transform` is a non-negative integer. The 32-dimension ceil
 
 ### 3.5 Integer value range
 
-The canonical range for every coordinate and bound value (excluding the `"-inf"`/`"+inf"` sentinels) is the **64-bit signed integer** range `[-2^63, 2^63 − 1]`. Values within this range are portable and all conformant implementations agree on them. Behavior for values **outside** this range is **implementation-defined and outside v1 conformance**: an implementation MAY reject them (the Rust reference does, as `invalid_json`, because it parses to `i64`), and an implementation on a platform with unbounded integers (Python) or 53-bit-safe numbers (JavaScript) is not required to enforce the bound. The conformance corpus uses only in-range values.
+Every coordinate and bound value (excluding the `"-inf"`/`"+inf"` sentinels) MUST be a **64-bit signed integer**, in `[-2^63, 2^63 − 1]`. An implementation MUST accept the full range **exactly** and MUST reject an input integer outside it with `invalid_json`. How values are represented internally is an implementation choice: an implementation whose default numeric type cannot hold all 64-bit integers — notably JavaScript, whose `number` is an IEEE-754 double exact only to ±(2^53 − 1) — MUST use a wider representation (e.g. `BigInt`) for values beyond it, so that no in-range value loses precision. (Integers wider than 64-bit MAY be supported in a future version.)
 
 ### 3.6 JSON value types
 
@@ -229,7 +229,6 @@ For interoperability the spec describes the *intended* structure of certain fiel
 
 - **`index_array` shape.** A semantically valid `index_array` is a nested integer array whose rank equals `input_rank` and is broadcast-compatible with the input domain. v1 implementations carry `index_array` verbatim and do **not** validate its rank or broadcast shape.
 - **`input_dimension` range.** A `single_input_dimension` map's `input_dimension` is intended to be `< input_rank`. v1 implementations check only that it is a non-negative integer.
-- **Out-of-range integers.** See §3.5.
 
 A future version MAY promote any of these to a required check (with an allocated reason code and corpus fixtures).
 
