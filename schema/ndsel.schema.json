@@ -90,7 +90,7 @@
       "allOf": [{ "$ref": "#/$defs/inputUpperBoundExclusivity" }],
       "properties": {
         "kind": { "const": "transform" },
-        "input_rank": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "input_rank": { "type": "integer", "minimum": 0 },
         "input_inclusive_min": { "$ref": "#/$defs/boundArray" },
         "input_exclusive_max": { "$ref": "#/$defs/boundArray" },
         "input_inclusive_max": { "$ref": "#/$defs/boundArray" },
