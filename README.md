@@ -36,9 +36,9 @@ frame — re-basing the output to 0 is an explicit, separate step.
 | [`spec/ndsel.md`](spec/ndsel.md) | Normative specification |
 | [`schema/ndsel.schema.json`](schema/ndsel.schema.json) | JSON Schema for all message kinds |
 | [`conformance/`](conformance/) | Conformance corpus (valid + invalid fixtures) |
-| [`rust/ndsel/`](rust/ndsel/) | Rust reference implementation **(implemented)** |
-| [`python/ndsel/`](python/ndsel/) | Python implementation (planned — Plan 2) |
-| [`typescript/`](typescript/) | TypeScript implementation (planned — Plan 3) |
+| [`rust/ndsel/`](rust/ndsel/) | Rust reference implementation |
+| [`python/ndsel/`](python/ndsel/) | Python reference implementation |
+| [`typescript/`](typescript/) | TypeScript reference implementation |
 
 ## License
 
