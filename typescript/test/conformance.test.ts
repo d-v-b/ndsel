@@ -7,7 +7,7 @@ import { NdsqError, normalize, parse } from "../src/index.ts";
 
 const repoRoot = join(import.meta.dirname, "..", "..");
 const corpusDir = join(repoRoot, "conformance");
-const schemaPath = join(repoRoot, "schema", "ndsq.schema.json");
+const schemaPath = join(repoRoot, "schema", "ndsel.schema.json");
 
 // strict:false so ajv accepts the schema's `additionalProperties:false` alongside
 // `allOf`/`$ref` (a strict-mode warning), matching the lenient Rust/Python validators.

@@ -1,5 +1,5 @@
 /**
- * ndsq — JSON-serializable n-dimensional spatial queries.
+ * ndsel — JSON-serializable n-dimensional spatial queries.
  *
  * Parse a JSON string with `parse`, then reduce it to a canonical `Transform`
  * with `normalize`. Construct messages ergonomically with the camelCase

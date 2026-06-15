@@ -1,4 +1,4 @@
-# ndsq conformance corpus
+# ndsel conformance corpus
 
 Language-agnostic fixtures. Each file is a JSON array of cases.
 

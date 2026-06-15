@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ndsel.dev/schema/ndsel.schema.json",
+  "title": "ndsel message",
+  "$defs": {
+    "indexValue": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string", "enum": ["-inf", "+inf"] }
+      ]
+    },
+    "implicitValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/indexValue" },
+        { "type": "array", "items": { "$ref": "#/$defs/indexValue" }, "minItems": 1, "maxItems": 1 }
+      ]
+    },
+    "boundArray": { "type": "array", "items": { "$ref": "#/$defs/implicitValue" } },
+    "outputMap": {
+      "type": "object",
+      "properties": {
+        "offset": { "type": "integer" },
+        "stride": { "type": "integer" },
+        "input_dimension": { "type": "integer", "minimum": 0 },
+        "index_array": {},
+        "index_array_bounds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/indexValue" },
+          "minItems": 2, "maxItems": 2
+        }
+      },
+      "not": { "required": ["input_dimension", "index_array"] },
+      "additionalProperties": false
+    },
+    "upperBoundExclusivity": {
+      "allOf": [
+        { "not": { "required": ["exclusive_max", "inclusive_max"] } },
+        { "not": { "required": ["exclusive_max", "shape"] } },
+        { "not": { "required": ["inclusive_max", "shape"] } }
+      ]
+    },
+    "inputUpperBoundExclusivity": {
+      "allOf": [
+        { "not": { "required": ["input_exclusive_max", "input_inclusive_max"] } },
+        { "not": { "required": ["input_exclusive_max", "input_shape"] } },
+        { "not": { "required": ["input_inclusive_max", "input_shape"] } }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": { "kind": { "const": "point" }, "coords": { "type": "array", "items": { "type": "integer" } } },
+      "required": ["kind", "coords"], "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/upperBoundExclusivity" }],
+      "properties": {
+        "kind": { "const": "box" },
+        "inclusive_min": { "$ref": "#/$defs/boundArray" },
+        "exclusive_max": { "$ref": "#/$defs/boundArray" },
+        "inclusive_max": { "$ref": "#/$defs/boundArray" },
+        "shape": { "$ref": "#/$defs/boundArray" },
+        "labels": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["kind"], "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "slice" },
+        "start": { "type": "array", "items": { "type": "integer" } },
+        "stop": { "type": "array", "items": { "type": "integer" } },
+        "step": { "type": "array", "items": { "type": "integer" } },
+        "labels": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["kind", "start", "stop"], "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "points" },
+        "coords": { "type": "array", "items": { "type": "array", "items": { "type": "integer" } } }
+      },
+      "required": ["kind", "coords"], "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/inputUpperBoundExclusivity" }],
+      "properties": {
+        "kind": { "const": "transform" },
+        "input_rank": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "input_inclusive_min": { "$ref": "#/$defs/boundArray" },
+        "input_exclusive_max": { "$ref": "#/$defs/boundArray" },
+        "input_inclusive_max": { "$ref": "#/$defs/boundArray" },
+        "input_shape": { "$ref": "#/$defs/boundArray" },
+        "input_labels": { "type": "array", "items": { "type": "string" } },
+        "output": { "type": "array", "items": { "$ref": "#/$defs/outputMap" } }
+      },
+      "required": ["kind"], "additionalProperties": false
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-# ndsq — TypeScript
+# ndsel — TypeScript
 
-The TypeScript peer implementation of **ndsq** (a JSON-serializable representation of n-dimensional array indexing / "spatial query"), passing the same shared conformance corpus as the Rust and Python references.
+The TypeScript peer implementation of **ndsel** (a JSON-serializable representation of n-dimensional array indexing / "spatial query"), passing the same shared conformance corpus as the Rust and Python references.
 
 ## Design: hybrid snake_case wire + camelCase builders
 
@@ -11,7 +11,7 @@ The TypeScript peer implementation of **ndsq** (a JSON-serializable representati
 ## Usage
 
 ```typescript
-import { normalize, parse, box } from "ndsq";
+import { normalize, parse, box } from "ndsel";
 
 // from JSON
 normalize(parse('{"kind": "slice", "start": [0], "stop": [10], "step": [2]}'));
@@ -29,7 +29,7 @@ normalize(box({ shape: [3] }))
 
 ## Specification and conformance
 
-The index model adapts [tensorstore's index transform](../spec/ndsq.md). The implementation is validated against the shared corpus in [`../conformance/`](../conformance/).
+The index model adapts [tensorstore's index transform](../spec/ndsel.md). The implementation is validated against the shared corpus in [`../conformance/`](../conformance/).
 
 ## Develop
 

@@ -47,5 +47,5 @@ export interface TransformMessage {
   output?: OutputMapInput[];
 }
 
-/** Any ndsq message, discriminated on `kind`. */
+/** Any ndsel message, discriminated on `kind`. */
 export type Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | TransformMessage;

@@ -1,15 +1,15 @@
-# ndsq — n-dimensional spatial query
+# ndsel — n-dimensional spatial query
 
-**ndsq** is a JSON-serializable representation of n-dimensional array indexing
+**ndsel** is a JSON-serializable representation of n-dimensional array indexing
 operations. A message denotes a *subset of grid points* (which points are
 selected from a source array) plus *how those points are arranged in the result
 array* (their output coordinate frame). The name stands for "n-dimensional
 spatial query".
 
-ndsq adapts the index model of
+ndsel adapts the index model of
 [Google TensorStore](https://google.github.io/tensorstore/index_space.html).
 For design rationale and the full motivation see
-[`docs/superpowers/specs/2026-06-13-ndsq-spec-design.md`](docs/superpowers/specs/2026-06-13-ndsq-spec-design.md).
+[`docs/superpowers/specs/2026-06-13-ndsel-spec-design.md`](docs/superpowers/specs/2026-06-13-ndsel-spec-design.md).
 
 ## Message kinds
 
@@ -33,9 +33,9 @@ frame — re-basing the output to 0 is an explicit, separate step.
 
 | Path | Contents |
 |------|----------|
-| [`spec/ndsq.md`](spec/ndsq.md) | Normative specification |
-| [`schema/ndsq.schema.json`](schema/ndsq.schema.json) | JSON Schema for all message kinds |
+| [`spec/ndsel.md`](spec/ndsel.md) | Normative specification |
+| [`schema/ndsel.schema.json`](schema/ndsel.schema.json) | JSON Schema for all message kinds |
 | [`conformance/`](conformance/) | Conformance corpus (valid + invalid fixtures) |
-| [`rust/ndsq/`](rust/ndsq/) | Rust reference implementation **(implemented)** |
-| [`python/ndsq/`](python/ndsq/) | Python implementation (planned — Plan 2) |
+| [`rust/ndsel/`](rust/ndsel/) | Rust reference implementation **(implemented)** |
+| [`python/ndsel/`](python/ndsel/) | Python implementation (planned — Plan 2) |
 | [`typescript/`](typescript/) | TypeScript implementation (planned — Plan 3) |

@@ -1,5 +1,5 @@
 {
-  "name": "ndsq",
+  "name": "ndsel",
   "version": "0.1.0",
   "description": "JSON-serializable n-dimensional spatial queries (TypeScript implementation)",
   "type": "module",
