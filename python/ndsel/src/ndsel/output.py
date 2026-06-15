@@ -9,19 +9,19 @@ from .errors import NdsqError, Reason
 from .values import IndexValue, parse_index_value, require_int
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ConstantMap:
     offset: int
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class SingleInputDimension:
     offset: int
     stride: int
     input_dimension: int
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class IndexArrayMap:
     offset: int
     stride: int

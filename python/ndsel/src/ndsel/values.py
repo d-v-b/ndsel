@@ -61,7 +61,7 @@ def require_str_list(raw: object, what: str) -> list[str]:
     return result
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ImplicitValue:
     """An index bound plus an explicit/implicit flag.
 

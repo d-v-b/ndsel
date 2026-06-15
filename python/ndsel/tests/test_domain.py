@@ -1,6 +1,6 @@
 import pytest
 
-from ndsel.domain import Domain, canonicalize_domain
+from ndsel.domain import canonicalize_domain
 from ndsel.errors import NdsqError, Reason
 from ndsel.values import ImplicitValue
 
@@ -24,8 +24,8 @@ def test_inclusive_max_converts_to_exclusive():
 
 def test_implicit_and_infinite_bounds_preserved():
     d = canonicalize_domain(inclusive_min=[["-inf"], 0], exclusive_max=[["+inf"], 4])
-    assert d.inclusive_min == [ImplicitValue("-inf", True), fin(0)]
-    assert d.exclusive_max == [ImplicitValue("+inf", True), fin(4)]
+    assert d.inclusive_min == [ImplicitValue(value="-inf", implicit=True), fin(0)]
+    assert d.exclusive_max == [ImplicitValue(value="+inf", implicit=True), fin(4)]
 
 
 def test_multiple_upper_bounds_is_error():

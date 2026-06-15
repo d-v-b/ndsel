@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from .messages import BoundJson, BoxMessage, PointMessage, PointsMessage, SliceMessage
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Point:
     coords: Sequence[int]
 
@@ -16,7 +16,7 @@ class Point:
         return {"kind": "point", "coords": list(self.coords)}
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Box:
     inclusive_min: Sequence[BoundJson] | None = None
     exclusive_max: Sequence[BoundJson] | None = None
@@ -33,7 +33,7 @@ class Box:
         return msg  # type: ignore[return-value]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Slice:
     start: Sequence[int]
     stop: Sequence[int]
@@ -49,7 +49,7 @@ class Slice:
         return msg  # type: ignore[return-value]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Points:
     coords: Sequence[Sequence[int]]
 

@@ -10,7 +10,7 @@ from .output import OutputMap, SingleInputDimension, canonicalize_output_map, ou
 from .values import require_list
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Transform:
     """The canonical core. Serialize with `to_dict()` (the bare transform body, no `kind`)."""
 

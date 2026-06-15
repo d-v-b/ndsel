@@ -8,7 +8,7 @@ from .errors import NdsqError, Reason
 from .values import ImplicitValue, require_int, require_list, require_str_list
 
 
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Domain:
     """Per-dimension [inclusive_min, exclusive_max) plus labels."""
 
