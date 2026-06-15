@@ -23,6 +23,38 @@ To express the same selection compactly at varying cost, ndsel defines a **short
 
 Every shorthand MUST have a normative desugaring to `transform` (§5). `transform` is the universal escape hatch: any selection-with-arrangement is representable. The shorthands are faithful special cases chosen to cover common selection shapes compactly.
 
+### 1.1 A worked example
+
+> *"Select every other element of a length-20 1-D array, starting at index 10."*
+
+That intent — selecting source indices 10, 12, 14, 16, 18 — is a strided `slice`:
+
+```json
+{ "kind": "slice", "start": [10], "stop": [20], "step": [2] }
+```
+
+Normalizing it (§4.3) produces the canonical `transform`: the same selection written in the universal core.
+
+```json
+{
+  "input_rank": 1,
+  "input_inclusive_min": [5],
+  "input_exclusive_max": [10],
+  "input_labels": [""],
+  "output": [ { "offset": 0, "stride": 2, "input_dimension": 0 } ]
+}
+```
+
+Read it as a function from a result index `i` to a source index: `source = 0 + 2·i`, over the result domain `[5, 10)`. So result indices 5…9 address source 10…18 — a length-5 dimension. The result domain is `[5, 10)`, **not** re-based to `[0, 5)`: ndsel preserves the source coordinate frame (§2.2).
+
+The same array can be addressed with the other shorthands, each compact for its shape:
+
+| Intent | Message |
+|--------|---------|
+| The first 100×100 block of a 2-D array | `{ "kind": "box", "shape": [100, 100] }` |
+| The single cell at (3, 5) | `{ "kind": "point", "coords": [3, 5] }` |
+| Exactly these three scattered cells | `{ "kind": "points", "coords": [[0,0],[5,2],[9,9]] }` |
+
 ---
 
 ## 2. Relationship to tensorstore
