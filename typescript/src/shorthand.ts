@@ -6,7 +6,6 @@ import { type Transform, identityOutput } from "./transform.ts";
 import {
   type BoundJson,
   demote,
-  floorDivBig,
   requireArray,
   requireIntArray,
   requireStringArray,
@@ -69,8 +68,8 @@ export function desugarSlice(msg: SliceMessage): Transform {
     if (s === 0n) throw new NdselError(Reason.StepZero, "step must be non-zero");
     if (s < 0n) throw new NdselError(Reason.NegativeStepUnsupported, "negative step is not yet specified");
     const count = b <= a ? 0n : (b - a + s - 1n) / s; // ceil((b-a)/s) for s>0
-    const o = floorDivBig(a, s); // floor(a/s) for s > 0
-    const offset = a - s * o; // lattice phase in [0, s)
+    const o = a / s; // trunc(a/s): BigInt `/` truncates toward zero (TensorStore parity, spec 5.3)
+    const offset = a - s * o; // lattice phase in (-s, s), sign of the remainder
     inclusiveMin.push(demote(o));
     exclusiveMax.push(demote(o + count));
     output.push({ offset: demote(offset), stride: demote(s), input_dimension: k });

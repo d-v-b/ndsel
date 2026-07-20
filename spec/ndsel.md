@@ -256,12 +256,14 @@ A per-dimension regular strided region following Python/NumPy slice conventions 
 **Desugaring for `step[k] = s > 0`**, with `start[k] = a`, `stop[k] = b`:
 
 - `m = max(0, ceil((b − a) / s))` — number of selected points.
-- `o = floor(a / s)` — result-dimension origin (the source origin divided by the stride, preserving the source coordinate frame).
-- `offset = a − s · o` (equivalently `a mod s`, in `[0, s)`) — the lattice phase, intrinsic to the selection.
+- `o = trunc(a / s)` — result-dimension origin, the source origin divided by the stride with **truncation toward zero** (drop the fractional part; equivalently `floor` for `a ≥ 0` and `ceil` for `a < 0`). This preserves the source coordinate frame.
+- `offset = a − s · o` — the lattice phase, intrinsic to the selection. It lies in `(−s, s)` and carries the sign of the remainder: `offset ≥ 0` when `a ≥ 0`, `offset ≤ 0` when `a ≤ 0`.
 - `output[k] = single_input_dimension(input_dimension = k, offset, stride = s)`.
 - Input domain for dimension `k`: `[o, o + m)` (i.e. `input_inclusive_min[k] = o`, `input_exclusive_max[k] = o + m`).
 
 The result domain is `[o, o + m)` in **source** coordinates, **not** re-based to `[0, m)` ([section 2.2](#22-selected-points-keep-their-source-coordinates)). For a 0-origin result, apply an explicit translation via `transform`.
+
+This matches TensorStore's strided-slice origin (verified against TensorStore 0.1.84, which computes the origin as `trunc(start / step)`). Truncation and floor agree for every `a ≥ 0`; they differ **exactly** when `a < 0` and `s` does not divide `a` — there `trunc` rounds toward zero (`trunc(−9 / 2) = −4`) while `floor` would round down (`floor(−9 / 2) = −5`). ndsel follows TensorStore, so it uses `trunc`.
 
 ### 5.4 `points`
 

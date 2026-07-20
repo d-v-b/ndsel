@@ -34,6 +34,14 @@ def _ceil_div(p: int, q: int) -> int:
     return (p + q - 1) // q
 
 
+def _trunc_div(a: int, s: int) -> int:
+    """Integer a / s truncated toward zero (Python's // is floor, not trunc)."""
+    q = a // s
+    if q < 0 and q * s != a:
+        q += 1
+    return q
+
+
 def desugar_slice(msg: SliceMessage) -> Transform:
     start = require_int_list(msg.get("start"), "slice.start")
     stop = require_int_list(msg.get("stop"), "slice.stop")
@@ -65,8 +73,8 @@ def desugar_slice(msg: SliceMessage) -> Transform:
         if s < 0:
             raise NdselError(Reason.NEGATIVE_STEP_UNSUPPORTED, "negative step is not yet specified")
         m = 0 if b <= a else _ceil_div(b - a, s)
-        o = a // s  # floor(a/s) for s > 0
-        offset = a - s * o  # lattice phase in [0, s)
+        o = _trunc_div(a, s)  # trunc(a/s): TensorStore parity (see spec 5.3)
+        offset = a - s * o  # lattice phase in (-s, s), sign of the remainder
         inclusive_min.append(MaybeImplicitValue.explicit(o))
         exclusive_max.append(MaybeImplicitValue.explicit(o + m))
         output.append(SingleInputDimension(offset=offset, stride=s, input_dimension=k))
