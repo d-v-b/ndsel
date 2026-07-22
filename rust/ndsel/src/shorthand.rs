@@ -110,8 +110,8 @@ impl Slice {
             }
             // s > 0
             let m = if b <= a { 0 } else { ceil_div(b - a, s) };
-            let o = a.div_euclid(s); // floor(a/s) for s > 0
-            let offset = a - s * o; // == a.rem_euclid(s), the lattice phase in [0, s)
+            let o = a / s; // trunc(a/s): Rust `/` truncates toward zero (TensorStore parity, spec 5.3)
+            let offset = a - s * o; // == a % s, the lattice phase in (-s, s) with the remainder's sign
             inclusive_min.push(fin(o));
             exclusive_max.push(fin(o + m));
             output.push(OutputMap::SingleInputDimension {
