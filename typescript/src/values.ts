@@ -34,12 +34,6 @@ export function demote(x: bigint): Int {
   return x >= -SAFE_MAX && x <= SAFE_MAX ? Number(x) : x;
 }
 
-/** Floor division `floor(a / s)` for `s > 0`, in `bigint`. */
-export function floorDivBig(a: bigint, s: bigint): bigint {
-  const q = a / s; // truncates toward zero
-  return a % s !== 0n && a < 0n ? q - 1n : q;
-}
-
 function checkI64(x: bigint, what: string): Int {
   if (x < I64_MIN || x > I64_MAX) {
     throw new NdselError(Reason.InvalidJson, `${what} value ${x} is out of 64-bit signed range`);

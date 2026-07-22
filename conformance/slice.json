@@ -39,5 +39,23 @@
         { "offset": 0, "stride": 1, "input_dimension": 1 }
       ]
     }
+  },
+  {
+    "name": "slice/negative-start-trunc-origin",
+    "input": { "kind": "slice", "start": [-9], "stop": [5], "step": [2] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [-4], "input_exclusive_max": [3],
+      "input_labels": [""],
+      "output": [ { "offset": -1, "stride": 2, "input_dimension": 0 } ]
+    }
+  },
+  {
+    "name": "slice/negative-start-trunc-origin-step3",
+    "input": { "kind": "slice", "start": [-8], "stop": [6], "step": [3] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [-2], "input_exclusive_max": [3],
+      "input_labels": [""],
+      "output": [ { "offset": -2, "stride": 3, "input_dimension": 0 } ]
+    }
   }
 ]
