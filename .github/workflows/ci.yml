@@ -1,0 +1,99 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: python py=${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: python/ndsel
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Run pytest
+        run: uv run --python ${{ matrix.python-version }} pytest
+      - name: Run pyright
+        run: uv run --python ${{ matrix.python-version }} pyright
+
+  rust:
+    name: rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: rust/ndsel
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - name: Run cargo check
+        run: cargo check --all-targets
+      - name: Run cargo test
+        run: cargo test
+
+  typescript:
+    name: typescript
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: typescript
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: typescript/package-lock.json
+      # test/conformance.test.ts imports ajv from devDependencies; without
+      # `npm ci` the corpus schema validation does not run.
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Typecheck
+        run: npm run typecheck
+
+  ci-complete:
+    name: ci complete
+    needs: [python, rust, typescript]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check failure
+        if: |
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - name: Success
+        run: echo Success!
