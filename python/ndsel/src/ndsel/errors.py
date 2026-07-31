@@ -9,7 +9,6 @@ class Reason(str, Enum):
     """Machine-readable reason codes for rejected messages (the wire codes)."""
 
     STEP_ZERO = "step_zero"
-    NEGATIVE_STEP_UNSUPPORTED = "negative_step_unsupported"
     MULTIPLE_UPPER_BOUNDS = "multiple_upper_bounds"
     BOUNDS_OUT_OF_ORDER = "bounds_out_of_order"
     OUTPUT_MAP_CONFLICT = "output_map_conflict"

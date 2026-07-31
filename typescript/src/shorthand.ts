@@ -66,10 +66,20 @@ export function desugarSlice(msg: SliceMessage): Transform {
     const b = toBig(stop[k]);
     const s = step[k];
     if (s === 0n) throw new NdselError(Reason.StepZero, "step must be non-zero");
-    if (s < 0n) throw new NdselError(Reason.NegativeStepUnsupported, "negative step is not yet specified");
-    const count = b <= a ? 0n : (b - a + s - 1n) / s; // ceil((b-a)/s) for s>0
-    const o = a / s; // trunc(a/s): BigInt `/` truncates toward zero (TensorStore parity, spec 5.3)
-    const offset = a - s * o; // lattice phase in (-s, s), sign of the remainder
+    // Source interval [a, b) for s > 0, [b+1, a+1) for s < 0 — see spec 5.3.
+    const n = s > 0n ? b - a : a - b;
+    if (n < 0n) {
+      throw new NdselError(
+        Reason.BoundsOutOfOrder,
+        `dimension ${k}: stop must be at or after start in the direction of travel ` +
+          `(stop >= start for step > 0, stop <= start for step < 0); ` +
+          `got start=${a}, stop=${b}, step=${s}`,
+      );
+    }
+    const abs = s < 0n ? -s : s;
+    const count = (n + abs - 1n) / abs; // ceil(n/|s|), n >= 0
+    const o = a / s; // trunc(a/s), both signs: BigInt `/` truncates toward zero (spec 5.3)
+    const offset = a - s * o; // lattice phase: |offset| < |s|, sign of a
     inclusiveMin.push(demote(o));
     exclusiveMax.push(demote(o + count));
     output.push({ offset: demote(offset), stride: demote(s), input_dimension: k });

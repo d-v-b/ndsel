@@ -1,7 +1,11 @@
 # ndsel — Normative Specification
 
-**Version:** 1.0-draft
-**Date:** 2026-06-15
+**Version:** 1.0-draft.2
+**Date:** 2026-07-31
+
+*Changes since 1.0-draft (2026-06-15): negative `step` is now specified, and a reversed
+slice interval is an error rather than an empty selection. Both are **breaking**; see
+[section 12](#12-revision-history).*
 
 ---
 
@@ -87,6 +91,22 @@ Because a message **selects** existing points rather than transforming them, a s
 
 A direct consequence: a `box` — which selects a contiguous block and reorders nothing — desugars to **identity** output maps. The points it selects are exactly where they were, so the canonical form is a pure domain restriction with no coordinate mapping at all. Genuine *rearrangement* (reordering or inserting axes) is available, but only through the `transform` kind; the shorthands never rearrange.
 
+### 2.3 TensorStore's JSON is a *minimal* encoding (non-normative)
+
+The field names are shared ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)), but the two formats make opposite choices about redundancy. ndsel's normalized form ([section 4.3](#43-canonical-normalized-form)) is **maximal**: every field written out, defaults included. TensorStore's `to_json` is **minimal**: it drops anything it can re-derive. Observed against TensorStore 0.1.84:
+
+| Dropped by `to_json` | Example |
+|----------------------|---------|
+| An **identity** `output` (every map `single_input_dimension(k, 0, 1)`) | the `output` member is absent entirely |
+| An **all-empty** `input_labels` | `["", ""]` → member absent |
+| A **redundant** `index_array_bounds` (no narrower than the hull of the array's own values) | `{"index_array": [7,3,5], "index_array_bounds": [0,9]}` → the bounds member is absent |
+| A dimension whose bounds are **implicit ±inf** | a fully-implicit-infinite rank-*n* transform → `{"input_rank": n}` |
+
+Consequences, both directions:
+
+- **Producing:** a conformant ndsel producer emits the [section 4.3](#43-canonical-normalized-form) canonical form. A body obtained straight from TensorStore's `to_json` is a *valid ndsel message* but is **not** in canonical form; run it through `normalize` before comparing it against a canonical body.
+- **Consuming:** consumers MUST accept both spellings. They are already required to — every dropped member is an omission the [section 4.1](#41-the-transform-message)/[section 4.2](#42-output-maps) defaults cover — but implementations that compare messages structurally rather than normalizing first will disagree with TensorStore over encodings that denote the same selection.
+
 ---
 
 ## 3. Conventions and value types
@@ -98,6 +118,10 @@ Every ndsel message MUST be a JSON object with a string `kind` field. Implementa
 ### 3.2 Infinity sentinels
 
 The strings `"-inf"` and `"+inf"` (exactly those characters, including the sign) represent negative and positive infinity in **bound** positions (domain bounds and `index_array_bounds`). Implementations MUST accept them wherever a bound is legal, and MUST NOT accept bare numeric infinity (JSON has no `Infinity`). Sentinels are **not** legal in plain-integer positions (`coords`, `start`, `stop`, `step`, `input_dimension`, `input_rank`).
+
+The sentinels are **conceptual** infinities, not stand-in integers: an implementation MUST NOT perform arithmetic on a `"-inf"`/`"+inf"` bound. Comparison against the extended-integer order (`-inf < n < +inf`) is the only operation defined on them. Where the specification derives one bound from another — `input_inclusive_max + 1`, `inclusive_min + shape` ([section 4.1](#41-the-transform-message)) — the derivation is defined only for finite operands; an infinite operand is either an error or leaves the bound infinite, at the implementation's discretion, but never a computed finite value.
+
+> **Why (non-normative).** Libraries that back infinity with a finite sentinel compute garbage if arithmetic reaches it. TensorStore's sentinel is `2^62 − 1`, and `{"inclusive_min": "-inf", "shape": [10]}` there yields the finite, unsaturated, nonsensical interval `[−4611686018427387903, −4611686018427387893)` — silently. A related trap at the same boundary: TensorStore's *exclusive* upper infinity is `kInfIndex + 1 = 2^62`, so a bridge mapping `"+inf"` in exclusive-max position to `kInfIndex` is off by one and produces a finite bound.
 
 ### 3.3 Implicit bounds: the `[n]`-bracket convention
 
@@ -203,7 +227,7 @@ Each kind's fields:
 - For `constant` maps, only `offset` present; `stride` and `input_dimension` absent.
 - `normalize` MUST be **idempotent**: `normalize(normalize(x)) == normalize(x)`.
 
-The canonical form is intentionally verbose. Compactness is the job of the shorthands, not the canonical core.
+The canonical form is intentionally verbose. Compactness is the job of the shorthands, not the canonical core. It is also the *opposite* of TensorStore's `to_json`, which omits every re-derivable member; a body straight from TensorStore is a valid ndsel message but not a canonical one ([section 2.3](#23-tensorstores-json-is-a-minimal-encoding-non-normative)).
 
 ---
 
@@ -244,26 +268,62 @@ A `box` is exactly an `IndexDomain` (the input domain of [section 4.1](#41-the-t
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `kind` | `"slice"` | yes | |
-| `start` | `integer[]` | yes | Inclusive start; length `n`. Plain integers only (no sentinels/brackets). |
-| `stop` | `integer[]` | yes | Exclusive stop; length `n`. |
-| `step` | `integer[]` | no | Length `n`; defaults to all `1`. Each element MUST be non-zero (`0` → `step_zero`). |
+| `start` | `integer[]` | yes | Inclusive start of the traversal; length `n`. Plain integers only (no sentinels/brackets). |
+| `stop` | `integer[]` | yes | Exclusive stop of the traversal; length `n`. |
+| `step` | `integer[]` | no | Length `n`; defaults to all `1`. Each element MUST be non-zero (`0` → `step_zero`). MAY be negative. |
 | `labels` | `string[]` | no | Per-dimension labels; length `n`. |
 
 A per-dimension regular strided region following Python/NumPy slice conventions (`stop` exclusive). Mismatched array lengths → `rank_mismatch`.
 
-**Negative `step` is reserved.** A future version will define its desugaring; until then, an implementation MUST reject a negative `step` with `negative_step_unsupported` (the conformance corpus requires this).
+`start` and `stop` are **required and literal**. They are source coordinates: never omitted, and never reinterpreted as counted-from-the-end when negative — a message carries no domain to resolve either convention against. The Python spellings `a[:]`, `a[::-1]`, `a[-3:]` therefore have no direct encoding; a producer resolves them against the source shape *before* emitting ([note below](#note-non-normative-lowering-a-python-slice)).
 
-**Desugaring for `step[k] = s > 0`**, with `start[k] = a`, `stop[k] = b`:
+**Desugaring.** A single rule covers both signs of `step`. For dimension `k`, with `start[k] = a`, `stop[k] = b`, `step[k] = s ≠ 0`:
 
-- `m = max(0, ceil((b − a) / s))` — number of selected points.
-- `o = trunc(a / s)` — result-dimension origin, the source origin divided by the stride with **truncation toward zero** (drop the fractional part; equivalently `floor` for `a ≥ 0` and `ceil` for `a < 0`). This preserves the source coordinate frame.
-- `offset = a − s · o` — the lattice phase, intrinsic to the selection. It lies in `(−s, s)` and carries the sign of the remainder: `offset ≥ 0` when `a ≥ 0`, `offset ≤ 0` when `a ≤ 0`.
+- **Source interval.** The traversal starts at `a` and runs toward `b`, which is excluded: the selected coordinates lie in the half-open interval `[a, b)` when `s > 0`, and in `[b + 1, a + 1)` when `s < 0`. Its **length** `L` (distinct from the rank `n` above) is
+  ```
+  L = b − a     (s > 0)
+  L = a − b     (s < 0)
+  ```
+- **Validity.** `L < 0` — `b` on the far side of `a` from the direction of travel — is rejected with `bounds_out_of_order`. `L = 0` is valid and selects nothing; an empty selection is legal at **any** coordinate.
+- `m = ceil(L / |s|)` — number of selected points.
+- `o = trunc(a / s)` — result-dimension origin, the traversal start divided by the step with **truncation toward zero** (drop the fractional part), for **both** signs of `s`. This preserves the source coordinate frame.
+- `offset = a − s · o` — the lattice phase, intrinsic to the selection. It is the truncated-division remainder of `a / s`: `|offset| < |s|`, carrying the sign of `a` (and `0` when `s` divides `a`).
 - `output[k] = single_input_dimension(input_dimension = k, offset, stride = s)`.
 - Input domain for dimension `k`: `[o, o + m)` (i.e. `input_inclusive_min[k] = o`, `input_exclusive_max[k] = o + m`).
+- `labels[k]` carries through unchanged: a strided or reversed dimension keeps its label.
 
-The result domain is `[o, o + m)` in **source** coordinates, **not** re-based to `[0, m)` ([section 2.2](#22-selected-points-keep-their-source-coordinates)). For a 0-origin result, apply an explicit translation via `transform`.
+The `m` selected source coordinates are `a, a + s, a + 2s, …`; equivalently, result index `i` names source coordinate `offset + s · i`, which at `i = o` is exactly `a`. The result domain is `[o, o + m)` in **source** coordinates, **not** re-based to `[0, m)` ([section 2.2](#22-selected-points-keep-their-source-coordinates)). For a 0-origin result, apply an explicit translation via `transform`.
 
-This matches TensorStore's strided-slice origin (verified against TensorStore 0.1.84, which computes the origin as `trunc(start / step)`). Truncation and floor agree for every `a ≥ 0`; they differ **exactly** when `a < 0` and `s` does not divide `a` — there `trunc` rounds toward zero (`trunc(−9 / 2) = −4`) while `floor` would round down (`floor(−9 / 2) = −5`). ndsel follows TensorStore, so it uses `trunc`.
+A reversed interval is an **error**, not an empty selection: `{"start": [9], "stop": [0], "step": [2]}` and `{"start": [5], "stop": [6], "step": [-1]}` are both rejected with `bounds_out_of_order`. The boundary is sharp — `{"start": [5], "stop": [5], "step": [-1]}` is valid and empty, `{"start": [5], "stop": [6], "step": [-1]}` is not. Selecting nothing is spelled `b = a`; anything further is a mistake about the direction of travel, and the specification says so rather than silently producing an empty result.
+
+This matches TensorStore's strided-slice desugaring, verified against TensorStore 0.1.84 by exhaustive comparison over 32,980 cases (domains, both step signs, every in- and out-of-range bound) with zero disagreement, on results and on which inputs are rejected.
+
+**On `trunc`.** Truncation and floor agree for every `a / s ≥ 0`; they differ **exactly** when `a / s < 0` and `s` does not divide `a` — there `trunc` rounds toward zero (`trunc(−9 / 2) = −4`, `trunc(15 / −2) = −7`) while `floor` would round down (`−5`, `−8`). With `s > 0` the divergence needs a negative `a`; with `s < 0` it is the *ordinary* case, reached by any positive `a`. ndsel follows TensorStore, so it uses `trunc` throughout.
+
+**Worked example — reversing an axis.** In NumPy, reversing a length-20 axis is `a[::-1]`. Resolved against that axis's domain `[0, 20)` (see the lowering note below) it is `start = 19`, `stop = −1`, `step = −1`:
+
+```json
+{ "kind": "slice", "start": [19], "stop": [-1], "step": [-1] }
+```
+
+`L = a − b = 19 − (−1) = 20`, so `m = 20`; `o = trunc(19 / −1) = −19`; `offset = 19 − (−1)·(−19) = 0`. The normalized transform is domain `[−19, 1)` with the single map `single_input_dimension(input_dimension = 0, offset = 0, stride = −1)`. Reading it back: result index `i` names source coordinate `0 + (−1)·i`, so `i = −19, −18, …, 0` names source points `19, 18, …, 0` — the axis, reversed, still in source coordinates.
+
+**A negative step normally yields a negative origin.** `o = trunc(a / s)` carries the sign of `a / s`, so for `s < 0` and a non-negative traversal start the origin is `≤ 0`: reversing a 0-origin axis puts almost the whole result domain below zero. That is the direct consequence of [section 2.2](#22-selected-points-keep-their-source-coordinates) — the result stays anchored to the source frame, and a reversing map necessarily runs the frame backwards — but it is the first construction in which a message built from a non-negative source produces negative coordinates. A consumer that requires non-negative coordinates (NumPy has no origin) re-bases explicitly; nothing in the desugaring does it implicitly.
+
+<a id="note-non-normative-lowering-a-python-slice"></a>
+
+> **Note (non-normative): lowering a Python slice.** A Python/NumPy slice may omit either bound, and ndsel's `slice` may not — the message has no domain to default against. A producer holding the source domain `[lo, hi)` for the dimension resolves omissions **on the side the traversal starts and stops**, in literal source coordinates:
+>
+> | | traversal start `a` | traversal stop `b` |
+> |---|---|---|
+> | `s > 0` | `start` if given, else `lo` | `stop` if given, else `hi` |
+> | `s < 0` | `start` if given, else `hi − 1` | `stop` if given, else `lo − 1` |
+>
+> These are the rules TensorStore applies (verified, same corpus as above), and consumers that evaluate Python-style slices against a domain SHOULD apply them so that implementations agree. Note that for `s < 0` the omitted stop is `lo − 1` — one *below* the domain — which is what makes `[::-1]` select down to and including `lo`; for `lo = 0` it is the literal coordinate `−1`, **not** "the last element".
+>
+> Two conventions a producer must resolve itself, because neither ndsel nor TensorStore applies them: **from-the-end negative indices** (NumPy's `a[-3:]` means `a[hi−3:]`; ndsel reads `−3` as the coordinate `−3`), and **clamping** (NumPy silently clamps `a[0:1000]` to the axis; an ndsel bound outside the domain is either an error or an assertion about the domain, depending on the consumer).
+
+
 
 ### 5.4 `points`
 
@@ -288,11 +348,12 @@ An implementation MUST reject an invalid input with exactly one of the following
 | `unknown_kind` | `kind` is a string but not one of `point`/`box`/`slice`/`points`/`transform` (including the empty string). |
 | `unknown_field` | A message or output map contains a member not defined for its kind (see [section 3.7](#37-strict-membership)). |
 | `multiple_upper_bounds` | More than one of `exclusive_max`/`inclusive_max`/`shape` (or their `input_`-prefixed forms) is present. |
-| `bounds_out_of_order` | A dimension's `inclusive_min` exceeds its `exclusive_max` — including the inverted interval produced by a negative `shape`. An *empty* interval (`inclusive_min == exclusive_max`) is valid. |
+| `bounds_out_of_order` | A dimension's interval is inverted: its `inclusive_min` exceeds its `exclusive_max` — including the interval produced by a negative `shape`, and the source interval of a `slice` whose `stop` lies on the far side of `start` from the direction of travel ([section 5.3](#53-slice)). An *empty* interval (`inclusive_min == exclusive_max`) is valid. |
 | `output_map_conflict` | An output map carries both `input_dimension` and `index_array` ([section 4.2](#42-output-maps)). |
 | `rank_mismatch` | `input_rank` is present and inconsistent with an array length, or arrays of inconsistent lengths are provided (including ragged `points`). |
 | `step_zero` | A `slice` `step` element is `0`. |
-| `negative_step_unsupported` | A `slice` `step` element is negative (reserved; see [section 5.3](#53-slice)). |
+
+The code `negative_step_unsupported` was **retired** in 1.0-draft.2, when negative `step` became specified ([section 12](#12-revision-history)). It MUST NOT be emitted; a conformant implementation has no condition that produces it.
 
 ---
 
@@ -347,6 +408,40 @@ This specification is dedicated to the public domain under [CC0 1.0 Universal](.
 - **TensorStore.** <https://google.github.io/tensorstore/> — Google's array storage/indexing library whose index model ndsel adapts.
 - **TensorStore — Index space.** <https://google.github.io/tensorstore/index_space.html> — the `IndexTransform` / `IndexDomain` model that ndsel's canonical core ([section 4](#4-the-canonical-core-kind-transform)) adopts.
 - **TensorStore — `IndexTransform` JSON.** <https://google.github.io/tensorstore/python/api/tensorstore.IndexTransform.__init__-json.html> — the exact JSON encoding whose field names ndsel reuses for the `transform` kind.
+
+---
+
+## 12. Revision history
+
+### 1.0-draft.2 — 2026-07-31
+
+Two **breaking** changes to `slice` ([section 5.3](#53-slice)), both adopting behaviour verified
+against TensorStore 0.1.84 over an exhaustive 32,980-case corpus:
+
+1. **Negative `step` is specified.** 1.0-draft reserved it and required implementations to
+   reject it with `negative_step_unsupported`; the conformance corpus contained a fixture
+   demanding that rejection. A negative `step` is now valid, and desugars by the same rule as
+   a positive one. The reason code `negative_step_unsupported` is **retired**
+   ([section 6](#6-error-codes)) and its corpus fixture is replaced by success fixtures.
+   An implementation that still rejects negative `step` is no longer conformant.
+2. **A reversed slice interval is an error.** 1.0-draft derived `m = max(0, ceil((b − a) / s))`,
+   silently clamping a reversed interval to an empty selection; the count is now
+   `m = ceil(L / |s|)` over a signed interval length `L`, and `L < 0` is rejected with
+   `bounds_out_of_order`. Inputs that previously normalized to an empty domain — e.g.
+   `{"start": [9], "stop": [0], "step": [2]}` — are now rejected. `L = 0` remains valid.
+
+Non-breaking in the same revision: `o = trunc(a / s)` is stated for both signs of `s`
+(1.0-draft already said `trunc`, but only defined `s > 0`); the `offset` range is restated as
+the truncated-division remainder, since the old `(−s, s)` phrasing assumed `s > 0`; a
+non-normative note records how a Python slice with omitted bounds lowers to a `slice` message
+([section 5.3](#53-slice)); a non-normative note records that TensorStore's JSON is a minimal
+encoding while ndsel's canonical form is maximal ([section 2.3](#23-tensorstores-json-is-a-minimal-encoding-non-normative));
+and infinity sentinels are stated to be non-arithmetic ([section 3.2](#32-infinity-sentinels)).
+
+### 1.0-draft — 2026-06-15
+
+Initial draft. (Amended in place before 1.0-draft.2 to specify the strided-slice origin as
+`trunc(a / s)` rather than `floor(a / s)`, matching TensorStore.)
 
 ---
 
