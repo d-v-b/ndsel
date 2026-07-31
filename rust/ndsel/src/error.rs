@@ -4,7 +4,6 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reason {
     StepZero,
-    NegativeStepUnsupported,
     MultipleUpperBounds,
     BoundsOutOfOrder,
     OutputMapConflict,
@@ -19,7 +18,6 @@ impl Reason {
     pub fn code(self) -> &'static str {
         match self {
             Reason::StepZero => "step_zero",
-            Reason::NegativeStepUnsupported => "negative_step_unsupported",
             Reason::MultipleUpperBounds => "multiple_upper_bounds",
             Reason::BoundsOutOfOrder => "bounds_out_of_order",
             Reason::OutputMapConflict => "output_map_conflict",
@@ -66,7 +64,7 @@ mod tests {
         assert_eq!(Reason::StepZero.code(), "step_zero");
         assert_eq!(Reason::RankMismatch.code(), "rank_mismatch");
         assert_eq!(Reason::MultipleUpperBounds.code(), "multiple_upper_bounds");
-        assert_eq!(Reason::NegativeStepUnsupported.code(), "negative_step_unsupported");
+        assert_eq!(Reason::BoundsOutOfOrder.code(), "bounds_out_of_order");
         assert_eq!(Reason::UnknownKind.code(), "unknown_kind");
         assert_eq!(Reason::InvalidJson.code(), "invalid_json");
     }

@@ -70,11 +70,18 @@ def desugar_slice(msg: SliceMessage) -> Transform:
         a, b, s = start[k], stop[k], step[k]
         if s == 0:
             raise NdselError(Reason.STEP_ZERO, "step must be non-zero")
-        if s < 0:
-            raise NdselError(Reason.NEGATIVE_STEP_UNSUPPORTED, "negative step is not yet specified")
-        m = 0 if b <= a else _ceil_div(b - a, s)
-        o = _trunc_div(a, s)  # trunc(a/s): TensorStore parity (see spec 5.3)
-        offset = a - s * o  # lattice phase in (-s, s), sign of the remainder
+        # Source interval [a, b) for s > 0, [b+1, a+1) for s < 0 — see spec 5.3.
+        n = b - a if s > 0 else a - b
+        if n < 0:
+            raise NdselError(
+                Reason.BOUNDS_OUT_OF_ORDER,
+                f"dimension {k}: stop must be at or after start in the direction of travel "
+                f"(stop >= start for step > 0, stop <= start for step < 0); "
+                f"got start={a}, stop={b}, step={s}",
+            )
+        m = _ceil_div(n, abs(s))
+        o = _trunc_div(a, s)  # trunc(a/s), both signs: TensorStore parity (see spec 5.3)
+        offset = a - s * o  # lattice phase: |offset| < |s|, sign of a
         inclusive_min.append(MaybeImplicitValue.explicit(o))
         exclusive_max.append(MaybeImplicitValue.explicit(o + m))
         output.append(SingleInputDimension(offset=offset, stride=s, input_dimension=k))

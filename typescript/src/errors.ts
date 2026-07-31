@@ -1,7 +1,6 @@
 /** Stable machine-readable reason codes for rejected messages (the wire codes). */
 export const Reason = {
   StepZero: "step_zero",
-  NegativeStepUnsupported: "negative_step_unsupported",
   MultipleUpperBounds: "multiple_upper_bounds",
   BoundsOutOfOrder: "bounds_out_of_order",
   OutputMapConflict: "output_map_conflict",
