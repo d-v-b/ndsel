@@ -88,7 +88,13 @@ def _native_index(msg: dict) -> tuple:
     if kind == "slice":
         start, stop = msg["start"], msg["stop"]
         step = msg.get("step") or [1] * len(start)
-        return tuple(slice(a, b, s) for a, b, s in zip(start, stop, step))
+        # ndsel bounds are literal coordinates; NumPy re-reads a negative bound as
+        # counted-from-the-end. `stop = -1` with a negative step means "down to and
+        # including 0", which NumPy spells `None`. A `stop < -1` selects negative
+        # coordinates, which the caller skips as not materializable.
+        return tuple(
+            slice(a, None if (s < 0 and b < 0) else b, s) for a, b, s in zip(start, stop, step)
+        )
     if kind == "box":
         mins, maxs = _box_bounds(msg)
         return tuple(slice(a, b) for a, b in zip(mins, maxs))

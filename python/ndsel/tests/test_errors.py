@@ -3,8 +3,8 @@ from ndsel.errors import NdselError, Reason
 
 def test_reason_codes_are_stable():
     assert Reason.STEP_ZERO.value == "step_zero"
-    assert Reason.NEGATIVE_STEP_UNSUPPORTED.value == "negative_step_unsupported"
     assert Reason.MULTIPLE_UPPER_BOUNDS.value == "multiple_upper_bounds"
+    assert Reason.BOUNDS_OUT_OF_ORDER.value == "bounds_out_of_order"
     assert Reason.RANK_MISMATCH.value == "rank_mismatch"
     assert Reason.UNKNOWN_KIND.value == "unknown_kind"
     assert Reason.INVALID_JSON.value == "invalid_json"

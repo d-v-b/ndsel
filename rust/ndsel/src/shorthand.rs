@@ -102,16 +102,21 @@ impl Slice {
             if s == 0 {
                 return Err(NdselError::new(crate::error::Reason::StepZero, "step must be non-zero"));
             }
-            if s < 0 {
+            // Source interval [a, b) for s > 0, [b+1, a+1) for s < 0 — see spec 5.3.
+            let n = if s > 0 { b - a } else { a - b };
+            if n < 0 {
                 return Err(NdselError::new(
-                    crate::error::Reason::NegativeStepUnsupported,
-                    "negative step is not yet specified",
+                    crate::error::Reason::BoundsOutOfOrder,
+                    format!(
+                        "dimension {k}: stop must be at or after start in the direction of travel \
+                         (stop >= start for step > 0, stop <= start for step < 0); \
+                         got start={a}, stop={b}, step={s}"
+                    ),
                 ));
             }
-            // s > 0
-            let m = if b <= a { 0 } else { ceil_div(b - a, s) };
-            let o = a / s; // trunc(a/s): Rust `/` truncates toward zero (TensorStore parity, spec 5.3)
-            let offset = a - s * o; // == a % s, the lattice phase in (-s, s) with the remainder's sign
+            let m = ceil_div(n, s.abs());
+            let o = a / s; // trunc(a/s), both signs: Rust `/` truncates toward zero (spec 5.3)
+            let offset = a - s * o; // == a % s: |offset| < |s|, with the sign of a
             inclusive_min.push(fin(o));
             exclusive_max.push(fin(o + m));
             output.push(OutputMap::SingleInputDimension {
@@ -375,11 +380,59 @@ mod slice_tests {
         assert_eq!(err(r#"{ "kind": "slice", "start": [0], "stop": [4], "step": [0] }"#), crate::Reason::StepZero);
     }
 
+    /// Negative steps desugar by the same rule as positive ones (spec 5.3).
+    /// `(start, stop, step) -> (inclusive_min, exclusive_max, offset)`.
     #[test]
-    fn negative_step_is_unsupported() {
+    fn negative_step_slices() {
+        // x[19:-1:-1] — a reversed length-20 axis: domain [-19, 1), points 19..0
+        // x[15:5:-2]  — divisible span: points 15,13,11,9,7
+        // x[15:5:-4]  — span 10 is not divisible by 4: points 15,11,7
+        // x[-1:-6:-2] — negative interval; trunc(-1/-2) = 0, so the origin is 0
+        // x[5:4:-3]   — one point
+        // x[5:5:-1]   — empty is legal anywhere, at the origin trunc(5/-1) = -5
+        let cases: &[(i64, i64, i64, i64, i64, i64)] = &[
+            (19, -1, -1, -19, 1, 0),
+            (15, 5, -2, -7, -2, 1),
+            (15, 5, -4, -3, 0, 3),
+            (-1, -6, -2, 0, 3, -1),
+            (5, 4, -3, -1, 0, 2),
+            (5, 5, -1, -5, -5, 0),
+        ];
+        for &(start, stop, step, lo, hi, offset) in cases {
+            let v = norm(&format!(
+                r#"{{ "kind": "slice", "start": [{start}], "stop": [{stop}], "step": [{step}] }}"#
+            ));
+            assert_eq!(v["input_inclusive_min"], serde_json::json!([lo]), "case {start}:{stop}:{step}");
+            assert_eq!(v["input_exclusive_max"], serde_json::json!([hi]), "case {start}:{stop}:{step}");
+            assert_eq!(
+                v["output"],
+                serde_json::json!([{ "offset": offset, "stride": step, "input_dimension": 0 }]),
+                "case {start}:{stop}:{step}"
+            );
+        }
+    }
+
+    #[test]
+    fn negative_step_keeps_labels() {
+        let v = norm(
+            r#"{ "kind": "slice", "start": [19], "stop": [-1], "step": [-1], "labels": ["x"] }"#,
+        );
+        assert_eq!(v["input_labels"], serde_json::json!(["x"]));
+    }
+
+    #[test]
+    fn reversed_interval_positive_step_is_error() {
         assert_eq!(
-            err(r#"{ "kind": "slice", "start": [9], "stop": [-1], "step": [-2] }"#),
-            crate::Reason::NegativeStepUnsupported
+            err(r#"{ "kind": "slice", "start": [9], "stop": [0], "step": [2] }"#),
+            crate::Reason::BoundsOutOfOrder
+        );
+    }
+
+    #[test]
+    fn reversed_interval_negative_step_is_error() {
+        assert_eq!(
+            err(r#"{ "kind": "slice", "start": [5], "stop": [6], "step": [-1] }"#),
+            crate::Reason::BoundsOutOfOrder
         );
     }
 
