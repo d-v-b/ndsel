@@ -366,6 +366,20 @@ For interoperability the spec describes the *intended* structure of certain fiel
 
 A future version MAY promote any of these to a required check (with an allocated reason code and corpus fixtures).
 
+### 7.1 Producing an `index_array` that can be read back (non-normative)
+
+`normalize` carries `index_array` verbatim, so an empty one survives it unchanged and round-trips — the corpus pins this. An implementation that *serializes an in-memory transform* has a further problem, and this note records it so that each one does not have to rediscover it.
+
+A semantically valid `index_array` has rank equal to `input_rank`. JSON nested arrays cannot express every empty shape at that rank: an array is rendered by nesting one level per axis, and once the **leading** axis is the zero-length one there are no inner arrays left to describe the rest. For `input_rank = 2`, shape `(1, 0)` is `[[]]`, but shape `(0, 1)` — and every other `(0, n)` — is `[]`, which reads back as rank 1. Both the rank and the input dimension the map varies over are lost.
+
+The way out is that such a map never needs to be emitted. An `index_array` can only be empty because an input dimension is (the rank and broadcast-compatibility rule above leaves each axis either `1` or the domain's extent, so a `0` requires a `0`), the domain is written out separately, and no output coordinate is ever looked up through a map over an empty domain. The map is therefore degenerate: it has no observable behaviour to preserve, and a `constant` map stands in for it exactly.
+
+TensorStore takes this route. `t[ts.d[0][[]]]` yields `out[0] = 0`, emitted as `{}` — a `constant` map — and TensorStore rejects a document carrying `{"index_array": []}` at rank 2 with *"Index array for output dimension 0 has rank 1 but must have rank 2"*. Emitting the array would therefore produce a body it could not load, from a format whose canonical bodies are meant to be loadable `IndexTransform`s ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)).
+
+So: an implementation SHOULD collapse an `index_array` map with no elements to `constant`. The same applies for the same reason to a map whose `index_array` has exactly one element, which selects one coordinate regardless of input; there the collapse is a simplification rather than a necessity, since that shape does round-trip.
+
+This is guidance for producers, not a conformance requirement: ndsel conformance is defined over `normalize` ([section 8](#8-conformance)), which is given a message and never has an in-memory transform to serialize.
+
 ---
 
 ## 8. Conformance
