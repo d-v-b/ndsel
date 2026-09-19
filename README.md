@@ -15,7 +15,7 @@ ndsel adapts the index model of
 
 ## Message kinds
 
-There are five message kinds, ranging from convenient shorthands to the full
+There are six message kinds, ranging from convenient shorthands to the full
 canonical form.
 
 | Kind | Description | Example |
@@ -24,6 +24,7 @@ canonical form.
 | `box` | A contiguous hyperrectangle | `{"kind":"box","inclusive_min":[0,0],"exclusive_max":[3,4]}` |
 | `slice` | A regular strided region | `{"kind":"slice","start":[0],"stop":[10],"step":[2]}` |
 | `points` | An explicit set of points | `{"kind":"points","coords":[[1,10],[2,20]]}` |
+| `outer` | An independent selection per axis (ranges, index lists, interval lists) | `{"kind":"outer","axes":[null,{"intervals":[[0,90],[100,190]]}]}` |
 | `transform` | Full canonical core (TensorStore IndexTransform) | `{"kind":"transform","input_inclusive_min":[0,0],"input_exclusive_max":[3,4]}` |
 
 Every message normalizes to the canonical `transform` form. The shorthands are

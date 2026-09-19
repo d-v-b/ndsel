@@ -22,7 +22,7 @@ The arrangement is a genuine choice, not a formality. The same points may be kep
 
 This is *selection*, not a transformation of the source data: a selected point keeps its source coordinate — selecting picks out existing points, it does not renumber them into a fresh index space ([section 2.2](#22-selected-points-keep-their-source-coordinates)). What a message lays out is the *result*: how the selected points fill the new array.
 
-The canonical representation is the `transform` kind ([section 4](#4-the-canonical-core-kind-transform)), borrowed from TensorStore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
+The canonical representation is the `transform` kind ([section 4](#4-the-canonical-core-kind-transform)), borrowed from TensorStore's `IndexTransform`. For the common kinds (`point`, `box`, `slice`, `points`, `outer`) the arrangement is the natural one — the selected points in their source order; genuine *rearrangement* (reordering axes, inserting degenerate ones) is available only through `transform`, and the shorthands never rearrange.
 
 ndsel is **denotational, not operational**: a message encodes a *resolved* selection (the points selected and their layout), never a chained sequence of indexing operations such as `transpose`, `newaxis`, or `vindex`. The effect of any such operation is baked into the message before serialization.
 
@@ -34,6 +34,7 @@ To express the same selection compactly at varying cost, ndsel defines a **short
 | `box`       | A contiguous hyperrectangle              | n-D |
 | `slice`     | A regular strided region                 | n-D |
 | `points`    | An arbitrary explicit set of points      | 1-D |
+| `outer`     | An independent selection per dimension (ranges, index lists, interval lists) | n-D |
 | `transform` | Anything (the full canonical core)       | any |
 
 Every shorthand MUST have a normative desugaring to `transform` ([section 5](#5-shorthands-and-their-desugarings)). `transform` is the universal escape hatch: any selection is representable (including the rare cases that also rearrange axes). The shorthands are faithful special cases chosen to cover common selection shapes compactly.
@@ -69,6 +70,7 @@ The same array can be addressed with the other shorthands, each compact for its 
 | The first 100×100 block of a 2-D array | `{ "kind": "box", "shape": [100, 100] }` |
 | The single cell at (3, 5) | `{ "kind": "point", "coords": [3, 5] }` |
 | Exactly these three scattered cells | `{ "kind": "points", "coords": [[0,0],[5,2],[9,9]] }` |
+| All rows, and columns `[0, 90)` and `[100, 190)` | `{ "kind": "outer", "axes": [null, {"intervals": [[0,90],[100,190]]}] }` |
 
 ---
 
@@ -78,16 +80,16 @@ ndsel **adapts the index model of Google's [tensorstore](https://google.github.i
 
 ### 2.1 The one structural difference: the `kind` discriminator
 
-ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`transform`), so every message carries a `kind` string field. TensorStore's `IndexTransform` is a single type with no such field. This is the **only** structural difference between an ndsel `transform` and a TensorStore `IndexTransform`:
+ndsel is a **tagged union** of message kinds (`point`/`box`/`slice`/`points`/`outer`/`transform`), so every message carries a `kind` string field. TensorStore's `IndexTransform` is a single type with no such field. This is the **only** structural difference between an ndsel `transform` and a TensorStore `IndexTransform`:
 
 - **ndsel → TensorStore:** the normalized `transform` body ([section 4.3](#43-canonical-normalized-form)) is, field-for-field, a TensorStore `IndexTransform` *except* for the `kind` member. Because TensorStore's JSON binding is strict about unrecognized members, **strip `kind`** at the boundary, after which the body loads as an ordinary `IndexTransform`.
 - **TensorStore → ndsel:** a raw `IndexTransform` has no `kind`; **add `kind: "transform"`** to present it to ndsel's `parse`.
 
-The shorthands (`point`/`box`/`slice`/`points`) are ndsel's own; TensorStore has no JSON encoding for them. They merely desugar to ordinary `transform`s.
+The shorthands (`point`/`box`/`slice`/`points`/`outer`) are ndsel's own; TensorStore has no JSON encoding for them. They merely desugar to ordinary `transform`s. (`outer` is the JSON form of TensorStore's in-memory `oindex` expression, plus intervals, [section 5.5](#55-outer).)
 
 ### 2.2 Selected points keep their source coordinates
 
-Because a message **selects** existing points rather than transforming them, a selected point keeps the coordinate it had in the source. The result is therefore *anchored to the source frame*, not renumbered to a fresh 0-based index space: selecting `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. (This is also TensorStore's convention; the renumbering ndsel avoids is **NumPy's**, which re-bases sliced axes to origin 0.) Re-basing a result to origin 0 MUST be requested explicitly via a `transform`; no shorthand does it implicitly.
+Because a message **selects** existing points rather than transforming them, a selected point keeps the coordinate it had in the source. The result is therefore *anchored to the source frame*, not renumbered to a fresh 0-based index space: selecting `[5, 10)` keeps the domain `[5, 10)`, it is **not** re-based to `[0, 5)`. (This is also TensorStore's convention; the renumbering ndsel avoids is **NumPy's**, which re-bases sliced axes to origin 0.) Re-basing a result to origin 0 MUST be requested explicitly via a `transform`; no shorthand does it implicitly. (A dimension built from an explicit coordinate list — the one dimension of `points`, or an indices or intervals dimension of `outer` — is numbered `[0, m)`. That is not re-basing: the dimension counts the selected coordinates in the order written, so there is no source range for it to keep, [section 5.5](#55-outer).)
 
 A direct consequence: a `box` — which selects a contiguous block and reorders nothing — desugars to **identity** output maps. The points it selects are exactly where they were, so the canonical form is a pure domain restriction with no coordinate mapping at all. Genuine *rearrangement* (reordering or inserting axes) is available, but only through the `transform` kind; the shorthands never rearrange.
 
@@ -113,7 +115,7 @@ Consequences, both directions:
 
 ### 3.1 The `kind` discriminator
 
-Every ndsel message MUST be a JSON object with a string `kind` field. Implementations MUST reject input that is not a JSON object, or that lacks a string `kind`, with reason code `invalid_json`. A `kind` value that is a string but not one of the five recognized kinds (including the empty string) MUST be rejected with `unknown_kind` ([section 6](#6-error-codes)).
+Every ndsel message MUST be a JSON object with a string `kind` field. Implementations MUST reject input that is not a JSON object, or that lacks a string `kind`, with reason code `invalid_json`. A `kind` value that is a string but not one of the six recognized kinds (including the empty string) MUST be rejected with `unknown_kind` ([section 6](#6-error-codes)).
 
 ### 3.2 Infinity sentinels
 
@@ -336,6 +338,52 @@ An arbitrary explicit set of `m` points; the result is a 1-D array of length `m`
 
 **Desugaring:** `input_rank = 1`; input domain `[0, m)` (`input_inclusive_min = [0]`, `input_exclusive_max = [m]`); `input_labels = [""]`. `output` is `n` `index_array` maps — the row-major coordinate list transposed to columns: `output[k] = index_array(index_array = [coords[0][k], …, coords[m−1][k]], offset = 0, stride = 1, index_array_bounds = ["-inf", "+inf"])`. When `n = 0`, `output = []`.
 
+### 5.5 `outer`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `kind` | `"outer"` | yes | |
+| `axes` | `axis-selector[]` | yes | One selector per source dimension; length `n`. `n` may be `0`. |
+| `labels` | `string[]` | no | Per-dimension labels; length `n` (else `rank_mismatch`). |
+
+**Orthogonal (outer) indexing**: each source dimension is selected independently, and the result is the Cartesian product of the per-dimension selections — an n-D result whose dimension `k` enumerates the coordinates chosen on source dimension `k`. This is NumPy's `a[np.ix_(…)]` and TensorStore's `oindex`, with one addition neither has: a dimension may be selected by a list of **intervals**, so that "this axis, minus some holes" costs one pair per contiguous run rather than one integer per selected coordinate.
+
+An `axis-selector` is either JSON `null` or an object. Like an output map ([section 4.2](#42-output-maps)), an object selector is **not tagged**: its form is chosen by which members are present, in this order, and it MUST NOT carry a member outside its form (else `unknown_field`, [section 3.7](#37-strict-membership)).
+
+| If the selector… | …its form is | Members | Selects |
+|------------------|--------------|---------|---------|
+| is `null` | **all** | — | The whole dimension, whatever its extent. |
+| has `indices` | **indices** | `indices`: `integer[]` | Exactly these coordinates, in this order. |
+| otherwise has `intervals` | **intervals** | `intervals`: `[integer, integer][]` | The concatenation of half-open intervals `[lo, hi)`, in this order. |
+| otherwise | **range** | `start`: `integer`, `stop`: `integer`, `step`: `integer` (optional, default `1`) | A strided range, exactly as one dimension of a `slice` ([section 5.3](#53-slice)). |
+
+So an object with neither `indices` nor `intervals` is a range, and one missing `start` or `stop` is rejected with `invalid_json`. `{"indices": […], "intervals": […]}` is rejected with `unknown_field`, because `intervals` is not a member of the indices form. Each `intervals` entry MUST be a two-element array (else `invalid_json`) with `lo ≤ hi` (else `bounds_out_of_order`). An empty interval `lo = hi` is valid and selects nothing. All values are plain integers: sentinels and `[n]` brackets are not accepted ([section 3.2](#32-infinity-sentinels)).
+
+Neither `indices` nor `intervals` is required to be sorted, disjoint or free of repeats. Like `points` and `index_array`, they select coordinates in the order written, and a repeated coordinate appears in the result more than once.
+
+**Desugaring.** `input_rank = n`; `input_labels` as given or all `""`, whatever each dimension's form. (TensorStore's `oindex` clears the label of a dimension it indexes with an array; an `outer` message states its labels, so they are kept.) Each dimension `k` contributes its own input dimension `k` and output map `output[k]`, independently of the others:
+
+- **all:** input domain `[["-inf"], ["+inf"]]` (both bounds **implicit**, [section 3.3](#33-implicit-bounds-the-n-bracket-convention)); `output[k] = single_input_dimension(input_dimension = k, offset = 0, stride = 1)`. The implicit bounds are what let a message select "the whole axis" without knowing the source's extent: a consumer resolves them against the array, as TensorStore does when the transform is applied.
+- **range:** input domain and `output[k]` exactly as dimension `k` of the `slice` desugaring ([section 5.3](#53-slice)), with the same errors (`step_zero`, `bounds_out_of_order`). The result dimension stays in the source frame.
+- **indices** and **intervals:** let `c = [c₀, …, c_{m−1}]` be the selected coordinates — the `indices` list itself, or the intervals expanded in order (`[lo, hi)` contributes `lo, lo + 1, …, hi − 1`). The input domain is `[0, m)`, explicit. `output[k]` is:
+  - `m = 0`: `constant(offset = 0)`;
+  - `m = 1`: `constant(offset = c₀)`;
+  - `m ≥ 2`: `index_array(index_array = A, offset = 0, stride = 1, index_array_bounds = ["-inf", "+inf"])`, where `A` is `c` reshaped to the broadcast shape that is `m` in dimension `k` and `1` in every other dimension. For `n = 3` and `k = 2`, `A = [[c]]`; for `k = 0`, `A = [[[c₀]], [[c₁]], …]`.
+
+The `m ≤ 1` collapse is [section 7.1](#71-producing-an-index_array-that-can-be-read-back-non-normative) applied to the desugaring. An empty array cannot always be written at the right rank, and a single-element array is constant anyway. It also matches TensorStore: `oindex` with an empty or single-element list produces exactly these `constant` maps.
+
+Unlike a range dimension, an indices or intervals dimension is **not** in the source frame: its result coordinates `0 … m−1` number the *selected* coordinates, like the single dimension of `points`. With holes there is no contiguous source range to keep. The dimensions of one `outer` message can therefore sit in different frames — all, implicit; range, source; indices and intervals, `[0, m)` — the same mix TensorStore's `oindex` produces.
+
+**Worked example — a 3-D array minus two holes on its last axis.** In NumPy, `a[:, :, np.r_[0:90, 100:190, 200:290]]`:
+
+```json
+{ "kind": "outer", "axes": [null, null, { "intervals": [[0, 90], [100, 190], [200, 290]] }] }
+```
+
+This normalizes to domain `(-inf*, +inf*) × (-inf*, +inf*) × [0, 270)` with two identity maps and one `index_array` of shape `(1, 1, 270)`. Applied to an array of shape `(100, 200, 300)`, the implicit bounds resolve to `[0, 100)` and `[0, 200)`, and the result has shape `(100, 200, 270)`.
+
+> **Note (non-normative): size.** The message grows with the number of *runs*, but the normalized form grows with the number of *selected coordinates*: the `index_array` spells out every one. That is inherent to the canonical core, which has no interval-list map and would stop being a loadable `IndexTransform` if it gained one ([section 2.1](#21-the-one-structural-difference-the-kind-discriminator)). A consumer that only needs the per-dimension selection — to plan chunk reads, say — can use the `outer` message directly and skip normalizing. `normalize` on an `outer` message whose intervals cover more coordinates than the implementation can allocate fails for lack of resources, which is outside this specification's error codes.
+
 ---
 
 ## 6. Error codes
@@ -345,13 +393,13 @@ An implementation MUST reject an invalid input with exactly one of the following
 | Code | Condition |
 |------|-----------|
 | `invalid_json` | Not valid JSON, not a JSON object, lacks a string `kind`, or has a field whose JSON type does not match this specification (e.g. a missing required field, a boolean where an `integer` is required, a non-array bound). |
-| `unknown_kind` | `kind` is a string but not one of `point`/`box`/`slice`/`points`/`transform` (including the empty string). |
-| `unknown_field` | A message or output map contains a member not defined for its kind (see [section 3.7](#37-strict-membership)). |
+| `unknown_kind` | `kind` is a string but not one of `point`/`box`/`slice`/`points`/`outer`/`transform` (including the empty string). |
+| `unknown_field` | A message, output map, or `outer` axis selector contains a member not defined for its kind or form (see [section 3.7](#37-strict-membership)). |
 | `multiple_upper_bounds` | More than one of `exclusive_max`/`inclusive_max`/`shape` (or their `input_`-prefixed forms) is present. |
-| `bounds_out_of_order` | A dimension's interval is inverted: its `inclusive_min` exceeds its `exclusive_max` — including the interval produced by a negative `shape`, and the source interval of a `slice` whose `stop` lies on the far side of `start` from the direction of travel ([section 5.3](#53-slice)). An *empty* interval (`inclusive_min == exclusive_max`) is valid. |
+| `bounds_out_of_order` | A dimension's interval is inverted: its `inclusive_min` exceeds its `exclusive_max` — including the interval produced by a negative `shape`, the source interval of a `slice` (or `outer` range) whose `stop` lies on the far side of `start` from the direction of travel ([section 5.3](#53-slice)), and an `outer` interval `[lo, hi]` with `lo > hi` ([section 5.5](#55-outer)). An *empty* interval (`inclusive_min == exclusive_max`) is valid. |
 | `output_map_conflict` | An output map carries both `input_dimension` and `index_array` ([section 4.2](#42-output-maps)). |
 | `rank_mismatch` | `input_rank` is present and inconsistent with an array length, or arrays of inconsistent lengths are provided (including ragged `points`). |
-| `step_zero` | A `slice` `step` element is `0`. |
+| `step_zero` | A `slice` `step` element, or an `outer` range's `step`, is `0`. |
 
 The code `negative_step_unsupported` was **retired** in 1.0-draft.2, when negative `step` became specified ([section 12](#12-revision-history)). It MUST NOT be emitted; a conformant implementation has no condition that produces it.
 
@@ -426,6 +474,10 @@ This specification is dedicated to the public domain under [CC0 1.0 Universal](.
 ---
 
 ## 12. Revision history
+
+### Unreleased
+
+Non-breaking: a sixth message kind, `outer` ([section 5.5](#55-outer)), for orthogonal indexing. Each dimension is selected independently, by the whole axis, a range, a list of coordinates, or a list of half-open intervals. It desugars to ordinary `transform`s and adds no error codes. Existing messages are unaffected, but an implementation that does not know `outer` still rejects it with `unknown_kind`.
 
 ### 1.0-draft.2 — 2026-07-31
 

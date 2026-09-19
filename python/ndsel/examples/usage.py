@@ -5,7 +5,7 @@
 
 import json
 
-from ndsel import Box, NdselError, Point, Points, Slice, normalize, parse
+from ndsel import Box, NdselError, Outer, Point, Points, Slice, normalize, parse
 
 
 def show(label: str, value: object) -> None:
@@ -20,6 +20,7 @@ show("point (4, 7)", normalize(Point(coords=[4, 7])).to_json())
 show("box shape 3x4", normalize(Box(shape=[3, 4])).to_json())
 show("slice [0:10:2]", normalize(Slice(start=[0], stop=[10], step=[2])).to_json())
 show("points", normalize(Points(coords=[[1, 10], [2, 20]])).to_json())
+show("outer, holes", normalize(Outer(axes=[None, {"intervals": [[0, 3], [5, 8]]}])).to_json())
 show("transform 3x4", normalize(parse('{"kind":"transform","input_inclusive_min":[0,0],"input_exclusive_max":[3,4]}')).to_json())
 
 print("\n# error handling: stable, machine-readable reason codes")

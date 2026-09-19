@@ -5,7 +5,7 @@ Python peer implementation of **ndsel** — a JSON-serializable representation o
 ## Two-layer model
 
 - **TypedDicts** (`messages.py`) model the raw JSON messages exactly, giving a 1-to-1 mapping between Python dicts and the wire format.
-- **Dataclasses** provide ergonomic input builders — `Point`, `Box`, `Slice`, `Points` — and the canonical result type `Transform` (with a `.to_json()` method that serializes back to the JSON representation).
+- **Dataclasses** provide ergonomic input builders — `Point`, `Box`, `Slice`, `Points`, `Outer` — and the canonical result type `Transform` (with a `.to_json()` method that serializes back to the JSON representation).
 
 ## Usage
 

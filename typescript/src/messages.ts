@@ -27,6 +27,15 @@ export interface PointsMessage {
   coords: Int[][];
 }
 
+/** One `outer` axis selector; `null` selects the whole axis (spec 5.5). */
+export type OuterAxis = { start: Int; stop: Int; step?: Int } | { indices: Int[] } | { intervals: [Int, Int][] } | null;
+
+export interface OuterMessage {
+  kind: "outer";
+  axes: OuterAxis[];
+  labels?: string[];
+}
+
 /** An output-map object as accepted on input (before default-filling). */
 export interface OutputMapInput {
   offset?: Int;
@@ -48,4 +57,4 @@ export interface TransformMessage {
 }
 
 /** Any ndsel message, discriminated on `kind`. */
-export type Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | TransformMessage;
+export type Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | OuterMessage | TransformMessage;

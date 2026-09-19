@@ -1,11 +1,11 @@
-"""Ergonomic dataclass builders for the four shorthand message kinds."""
+"""Ergonomic dataclass builders for the five shorthand message kinds."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from .messages import BoundJson, BoxMessage, PointMessage, PointsMessage, SliceMessage
+from .messages import BoundJson, BoxMessage, OuterAxis, OuterMessage, PointMessage, PointsMessage, SliceMessage
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -55,3 +55,18 @@ class Points:
 
     def to_json(self) -> PointsMessage:
         return {"kind": "points", "coords": [list(p) for p in self.coords]}
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Outer:
+    """Per-axis selectors: `None` (whole axis), `{"start", "stop", "step"?}`,
+    `{"indices": [...]}`, or `{"intervals": [[lo, hi], ...]}`."""
+
+    axes: Sequence[OuterAxis]
+    labels: Sequence[str] | None = None
+
+    def to_json(self) -> OuterMessage:
+        msg: OuterMessage = {"kind": "outer", "axes": list(self.axes)}
+        if self.labels is not None:
+            msg["labels"] = list(self.labels)
+        return msg

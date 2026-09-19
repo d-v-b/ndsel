@@ -36,6 +36,30 @@ class PointsMessage(TypedDict):
     coords: list[list[int]]
 
 
+class RangeAxis(TypedDict):
+    start: int
+    stop: int
+    step: NotRequired[int]
+
+
+class IndicesAxis(TypedDict):
+    indices: list[int]
+
+
+class IntervalsAxis(TypedDict):
+    intervals: list[list[int]]
+
+
+# One `outer` axis selector: `None` selects the whole axis (spec 5.5).
+OuterAxis = RangeAxis | IndicesAxis | IntervalsAxis | None
+
+
+class OuterMessage(TypedDict):
+    kind: Literal["outer"]
+    axes: list[OuterAxis]
+    labels: NotRequired[list[str]]
+
+
 class OutputMapDict(TypedDict):
     offset: NotRequired[int]
     stride: NotRequired[int]
@@ -55,7 +79,7 @@ class TransformMessage(TypedDict):
     output: NotRequired[list[OutputMapDict]]
 
 
-Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | TransformMessage
+Message = PointMessage | BoxMessage | SliceMessage | PointsMessage | OuterMessage | TransformMessage
 
 
 # --- Normalized (output) shapes ---------------------------------------------

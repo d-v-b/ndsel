@@ -6,7 +6,7 @@ The TypeScript peer implementation of **ndsel** (a JSON-serializable representat
 
 **Wire types** use snake_case that mirrors the JSON byte-for-byte — `Message` (the top-level union), `Transform`, and their fields (`input_inclusive_min`, `input_exclusive_max`, etc.) match the schema exactly with no renaming.
 
-**Builder functions** use camelCase for ergonomic construction: `point`, `box`, `slice`, `points`. This mirrors the [zarrita.js](https://github.com/zarrita-dev/zarrita.js) precedent where metadata structures are snake_case (matching the Zarr spec) while constructor options are camelCase.
+**Builder functions** use camelCase for ergonomic construction: `point`, `box`, `slice`, `points`, `outer`. This mirrors the [zarrita.js](https://github.com/zarrita-dev/zarrita.js) precedent where metadata structures are snake_case (matching the Zarr spec) while constructor options are camelCase.
 
 ## Usage
 

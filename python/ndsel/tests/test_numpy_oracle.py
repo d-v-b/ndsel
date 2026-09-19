@@ -39,7 +39,8 @@ def _eval_output(omap: OutputMapDict, gi: list[int], mins: list[int]) -> int:
     offset = omap.get("offset", 0)
     if "index_array" in omap:
         arr = np.asarray(omap["index_array"])
-        local = tuple(g - lo for g, lo in zip(gi, mins))
+        # A size-1 array dimension broadcasts across the whole input dimension.
+        local = tuple(0 if n == 1 else g - lo for g, lo, n in zip(gi, mins, arr.shape))
         return offset + omap.get("stride", 1) * int(arr[local])
     if "input_dimension" in omap:
         return offset + omap.get("stride", 1) * gi[omap["input_dimension"]]
@@ -141,4 +142,52 @@ def test_matches_numpy(case: dict) -> None:
         got[local] = source[coord]
 
     native = source[native_idx]
+    assert np.array_equal(got, native), f"{case['name']}: ndsel {got!r} != native {native!r}"
+
+
+def _outer_selected(axis: dict | None, extent: int) -> list[int]:
+    """The source coordinates an `outer` axis selects, derived from the message alone."""
+    if axis is None:
+        return list(range(extent))
+    if "indices" in axis:
+        return list(axis["indices"])
+    if "intervals" in axis:
+        return [c for lo, hi in axis["intervals"] for c in range(lo, hi)]
+    return list(range(axis["start"], axis["stop"], axis.get("step", 1)))
+
+
+def _outer_fixtures() -> tuple[list[dict], list[str]]:
+    cases = [c for c in json.loads((CORPUS_DIR / "outer.json").read_text()) if "normalized" in c]
+    return cases, [c["name"] for c in cases]
+
+
+_OUTER_CASES, _OUTER_IDS = _outer_fixtures()
+
+
+@pytest.mark.parametrize("case", _OUTER_CASES, ids=_OUTER_IDS)
+def test_outer_matches_numpy_ix(case: dict) -> None:
+    """`outer` is orthogonal indexing: it must equal `source[np.ix_(...)]`."""
+    axes = case["input"]["axes"]
+    if not axes:
+        pytest.skip("rank 0: nothing to index")
+    whole = 4  # extent given to a `null` (whole-axis) dimension
+    selected = [_outer_selected(ax, whole) for ax in axes]
+    if any(c < 0 or c > CAP for sel in selected for c in sel):
+        pytest.skip("source index outside the executable range")
+    src_shape = tuple(whole if ax is None else max(sel, default=0) + 1 for ax, sel in zip(axes, selected))
+    source = np.arange(prod(src_shape)).reshape(src_shape)
+
+    # Resolve the implicit (whole-axis) bounds against the source, as a consumer would.
+    transform = normalize(parse(json.dumps(case["input"]))).to_json()
+    resolved: NormalizedTransform = {
+        **transform,
+        "input_inclusive_min": [0 if isinstance(b, list) else b for b in transform["input_inclusive_min"]],
+        "input_exclusive_max": [
+            src_shape[k] if isinstance(b, list) else b for k, b in enumerate(transform["input_exclusive_max"])
+        ],
+    }
+    coords, result_shape = _transform_coords(resolved)
+    got = np.array([source[c] for c in coords], dtype=source.dtype).reshape(result_shape)
+
+    native = source[np.ix_(*(np.array(sel, dtype=int) for sel in selected))]
     assert np.array_equal(got, native), f"{case['name']}: ndsel {got!r} != native {native!r}"

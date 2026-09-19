@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import json
 
-from .builders import Box, Point, Points, Slice
+from .builders import Box, Outer, Point, Points, Slice
 from .domain import Domain
 from .errors import NdselError, Reason
 from .messages import Message, NormalizedTransform
 from .output import ConstantMap, IndexArrayMap, OutputMap, SingleInputDimension
-from .shorthand import desugar_box, desugar_point, desugar_points, desugar_slice
+from .shorthand import desugar_box, desugar_outer, desugar_point, desugar_points, desugar_slice
 from .transform import Transform, canonicalize_transform
 from .values import MaybeImplicitValue, IndexValue
 
@@ -34,12 +34,13 @@ __all__ = [
     "Box",
     "Slice",
     "Points",
+    "Outer",
     "NdselError",
     "Reason",
 ]
 
-_KNOWN_KINDS = {"point", "box", "slice", "points", "transform"}
-_BUILDERS = (Point, Box, Slice, Points)
+_KNOWN_KINDS = {"point", "box", "slice", "points", "outer", "transform"}
+_BUILDERS = (Point, Box, Slice, Points, Outer)
 
 # The complete set of recognized members for each message kind (`kind` included).
 # Strict: any other member is rejected with `unknown_field`.
@@ -48,6 +49,7 @@ _ALLOWED_FIELDS = {
     "box": {"kind", "inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"},
     "slice": {"kind", "start", "stop", "step", "labels"},
     "points": {"kind", "coords"},
+    "outer": {"kind", "axes", "labels"},
     "transform": {
         "kind",
         "input_rank",
@@ -89,7 +91,7 @@ def parse(text: str) -> Message:
     return obj  # type: ignore[return-value]
 
 
-def normalize(message: Message | Point | Box | Slice | Points) -> Transform:
+def normalize(message: Message | Point | Box | Slice | Points | Outer) -> Transform:
     """Reduce a message (or a builder dataclass) to its canonical Transform."""
     if isinstance(message, _BUILDERS):
         message = message.to_json()
@@ -103,6 +105,8 @@ def normalize(message: Message | Point | Box | Slice | Points) -> Transform:
         return desugar_slice(message)
     if message["kind"] == "points":
         return desugar_points(message)
+    if message["kind"] == "outer":
+        return desugar_outer(message)
     if message["kind"] == "transform":
         return canonicalize_transform(message)
     raise NdselError(Reason.UNKNOWN_KIND, f"unknown kind: {message['kind']}")

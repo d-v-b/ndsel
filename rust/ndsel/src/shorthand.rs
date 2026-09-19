@@ -98,38 +98,45 @@ impl Slice {
         let mut output = Vec::with_capacity(rank);
 
         for k in 0..rank {
-            let (a, b, s) = (self.start[k], self.stop[k], step[k]);
-            if s == 0 {
-                return Err(NdselError::new(crate::error::Reason::StepZero, "step must be non-zero"));
-            }
-            // Source interval [a, b) for s > 0, [b+1, a+1) for s < 0 — see spec 5.3.
-            let n = if s > 0 { b - a } else { a - b };
-            if n < 0 {
-                return Err(NdselError::new(
-                    crate::error::Reason::BoundsOutOfOrder,
-                    format!(
-                        "dimension {k}: stop must be at or after start in the direction of travel \
-                         (stop >= start for step > 0, stop <= start for step < 0); \
-                         got start={a}, stop={b}, step={s}"
-                    ),
-                ));
-            }
-            let m = ceil_div(n, s.abs());
-            let o = a / s; // trunc(a/s), both signs: Rust `/` truncates toward zero (spec 5.3)
-            let offset = a - s * o; // == a % s: |offset| < |s|, with the sign of a
-            inclusive_min.push(fin(o));
-            exclusive_max.push(fin(o + m));
-            output.push(OutputMap::SingleInputDimension {
-                offset,
-                stride: s,
-                input_dimension: k,
-            });
+            let (lo, hi, map) = slice_dimension(self.start[k], self.stop[k], step[k], k)?;
+            inclusive_min.push(lo);
+            exclusive_max.push(hi);
+            output.push(map);
         }
 
         let labels = self.labels.unwrap_or_else(|| vec![String::new(); rank]);
         let domain = Domain { rank, inclusive_min, exclusive_max, labels };
         Ok(from_parts(domain, output))
     }
+}
+
+/// One dimension of the `slice` desugaring (spec 5.3): its domain bounds and map.
+fn slice_dimension(
+    a: i64,
+    b: i64,
+    s: i64,
+    k: usize,
+) -> Result<(ImplicitValue, ImplicitValue, OutputMap), NdselError> {
+    if s == 0 {
+        return Err(NdselError::new(crate::error::Reason::StepZero, "step must be non-zero"));
+    }
+    // Source interval [a, b) for s > 0, [b+1, a+1) for s < 0 — see spec 5.3.
+    let n = if s > 0 { b - a } else { a - b };
+    if n < 0 {
+        return Err(NdselError::new(
+            crate::error::Reason::BoundsOutOfOrder,
+            format!(
+                "dimension {k}: stop must be at or after start in the direction of travel \
+                 (stop >= start for step > 0, stop <= start for step < 0); \
+                 got start={a}, stop={b}, step={s}"
+            ),
+        ));
+    }
+    let m = ceil_div(n, s.abs());
+    let o = a / s; // trunc(a/s), both signs: Rust `/` truncates toward zero (spec 5.3)
+    let offset = a - s * o; // == a % s: |offset| < |s|, with the sign of a
+    let map = OutputMap::SingleInputDimension { offset, stride: s, input_dimension: k };
+    Ok((fin(o), fin(o + m), map))
 }
 
 /// Ceiling of p/q for p >= 0, q > 0.
@@ -179,6 +186,193 @@ impl Points {
     }
 }
 
+/// One `outer` axis selector (spec 5.5).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OuterAxis {
+    /// `null` — the whole axis, whatever its extent.
+    All,
+    /// `{"start", "stop", "step"?}` — one dimension of a `slice`.
+    Range { start: i64, stop: i64, step: Option<i64> },
+    /// `{"indices": [...]}` — exactly these coordinates, in order.
+    Indices(Vec<i64>),
+    /// `{"intervals": [[lo, hi], ...]}` — half-open intervals, concatenated in order.
+    Intervals(Vec<(i64, i64)>),
+}
+
+/// `{ "kind": "outer", "axes": [...], "labels": [...]? }`
+#[derive(Debug, Clone)]
+pub struct Outer {
+    pub axes: Vec<OuterAxis>,
+    pub labels: Option<Vec<String>>,
+}
+
+/// Deserialize one member of an axis selector; a type mismatch is `invalid_json`.
+fn member<T: serde::de::DeserializeOwned>(
+    map: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    k: usize,
+) -> Result<Option<T>, NdselError> {
+    map.get(key)
+        .map(|v| {
+            serde_json::from_value(v.clone()).map_err(|e| {
+                NdselError::new(crate::error::Reason::InvalidJson, format!("outer.axes[{k}].{key}: {e}"))
+            })
+        })
+        .transpose()
+}
+
+impl OuterAxis {
+    fn from_json(value: &serde_json::Value, k: usize) -> Result<Self, NdselError> {
+        use crate::error::Reason;
+        let map = match value {
+            serde_json::Value::Null => return Ok(OuterAxis::All),
+            serde_json::Value::Object(map) => map,
+            other => {
+                return Err(NdselError::new(
+                    Reason::InvalidJson,
+                    format!("outer.axes[{k}] must be null or an object, got {other}"),
+                ));
+            }
+        };
+        // Untagged, like an output map: the members present pick the form
+        // (indices > intervals > range), which then has a closed member set.
+        let (form, allowed): (&str, &[&str]) = if map.contains_key("indices") {
+            ("indices", &["indices"])
+        } else if map.contains_key("intervals") {
+            ("intervals", &["intervals"])
+        } else {
+            ("range", &["start", "stop", "step"])
+        };
+        if let Some(key) = map.keys().find(|key| !allowed.contains(&key.as_str())) {
+            return Err(NdselError::new(
+                Reason::UnknownField,
+                format!("outer.axes[{k}]: unrecognized field for a {form} selector: {key}"),
+            ));
+        }
+        match form {
+            "indices" => Ok(OuterAxis::Indices(member(map, "indices", k)?.unwrap())),
+            "intervals" => {
+                let pairs: Vec<Vec<i64>> = member(map, "intervals", k)?.unwrap();
+                let intervals = pairs
+                    .into_iter()
+                    .enumerate()
+                    .map(|(j, pair)| match pair[..] {
+                        [lo, hi] => Ok((lo, hi)),
+                        _ => Err(NdselError::new(
+                            Reason::InvalidJson,
+                            format!("outer.axes[{k}].intervals[{j}] must be a [lo, hi] pair"),
+                        )),
+                    })
+                    .collect::<Result<_, _>>()?;
+                Ok(OuterAxis::Intervals(intervals))
+            }
+            _ => {
+                let (Some(start), Some(stop)) = (member(map, "start", k)?, member(map, "stop", k)?) else {
+                    return Err(NdselError::new(
+                        Reason::InvalidJson,
+                        format!("outer.axes[{k}]: a range needs start and stop"),
+                    ));
+                };
+                Ok(OuterAxis::Range { start, stop, step: member(map, "step", k)? })
+            }
+        }
+    }
+}
+
+impl Outer {
+    /// Build from a parsed message object (top-level members already checked by `parse`).
+    pub(crate) fn from_json(value: serde_json::Value) -> Result<Self, NdselError> {
+        use crate::error::Reason;
+        let Some(serde_json::Value::Array(raw_axes)) = value.get("axes") else {
+            return Err(NdselError::new(Reason::InvalidJson, "outer.axes must be an array"));
+        };
+        let axes = raw_axes
+            .iter()
+            .enumerate()
+            .map(|(k, v)| OuterAxis::from_json(v, k))
+            .collect::<Result<_, _>>()?;
+        let labels = value
+            .get("labels")
+            .map(|v| serde_json::from_value(v.clone()).map_err(NdselError::from_serde))
+            .transpose()?;
+        Ok(Outer { axes, labels })
+    }
+
+    pub fn desugar(self) -> Result<Transform, NdselError> {
+        let rank = self.axes.len();
+        if let Some(labels) = &self.labels {
+            if labels.len() != rank {
+                return Err(NdselError::new(
+                    crate::error::Reason::RankMismatch,
+                    "labels length must match axes",
+                ));
+            }
+        }
+        let mut inclusive_min = Vec::with_capacity(rank);
+        let mut exclusive_max = Vec::with_capacity(rank);
+        let mut output = Vec::with_capacity(rank);
+        for (k, axis) in self.axes.into_iter().enumerate() {
+            let coords = match axis {
+                OuterAxis::All => {
+                    // The whole axis: implicit infinite bounds, resolved against the array.
+                    inclusive_min.push(ImplicitValue { value: IndexValue::NegInf, implicit: true });
+                    exclusive_max.push(ImplicitValue { value: IndexValue::PosInf, implicit: true });
+                    output.push(OutputMap::SingleInputDimension { offset: 0, stride: 1, input_dimension: k });
+                    continue;
+                }
+                OuterAxis::Range { start, stop, step } => {
+                    let (lo, hi, map) = slice_dimension(start, stop, step.unwrap_or(1), k)?;
+                    inclusive_min.push(lo);
+                    exclusive_max.push(hi);
+                    output.push(map);
+                    continue;
+                }
+                OuterAxis::Indices(coords) => coords,
+                OuterAxis::Intervals(intervals) => expand_intervals(&intervals, k)?,
+            };
+            inclusive_min.push(fin(0));
+            exclusive_max.push(fin(coords.len() as i64));
+            // Empty and single-element lists collapse to constant maps (spec 7.1).
+            output.push(match coords[..] {
+                [] => OutputMap::Constant { offset: 0 },
+                [c] => OutputMap::Constant { offset: c },
+                _ => OutputMap::IndexArray {
+                    offset: 0,
+                    stride: 1,
+                    index_array: broadcast(&coords, rank, k),
+                    bounds: (IndexValue::NegInf, IndexValue::PosInf),
+                },
+            });
+        }
+        let labels = self.labels.unwrap_or_else(|| vec![String::new(); rank]);
+        let domain = Domain { rank, inclusive_min, exclusive_max, labels };
+        Ok(from_parts(domain, output))
+    }
+}
+
+fn expand_intervals(intervals: &[(i64, i64)], k: usize) -> Result<Vec<i64>, NdselError> {
+    let mut coords = Vec::new();
+    for (j, &(lo, hi)) in intervals.iter().enumerate() {
+        if lo > hi {
+            return Err(NdselError::new(
+                crate::error::Reason::BoundsOutOfOrder,
+                format!("outer.axes[{k}].intervals[{j}]: lo {lo} exceeds hi {hi}"),
+            ));
+        }
+        coords.extend(lo..hi);
+    }
+    Ok(coords)
+}
+
+/// `coords` reshaped to the broadcast shape: `coords.len()` in dimension `k`, 1 elsewhere.
+fn broadcast(coords: &[i64], rank: usize, k: usize) -> serde_json::Value {
+    use serde_json::Value;
+    let leaves = coords.iter().map(|&c| {
+        (k + 1..rank).fold(Value::from(c), |v, _| Value::Array(vec![v]))
+    });
+    (0..k).fold(Value::Array(leaves.collect()), |v, _| Value::Array(vec![v]))
+}
+
 /// An explicit finite bound, used by the slice/points desugarers.
 fn fin(n: i64) -> ImplicitValue { ImplicitValue::explicit(IndexValue::Finite(n)) }
 
@@ -206,6 +400,19 @@ impl Points {
     /// `{ "kind": "points", "coords": [[...], ...] }` — an explicit set of points.
     pub fn new(coords: Vec<Vec<i64>>) -> Self {
         Points { coords }
+    }
+}
+
+impl Outer {
+    /// `{ "kind": "outer", "axes": [...] }` — one selector per dimension.
+    pub fn new(axes: Vec<OuterAxis>) -> Self {
+        Outer { axes, labels: None }
+    }
+
+    /// Set per-dimension labels.
+    pub fn labels(mut self, labels: Vec<String>) -> Self {
+        self.labels = Some(labels);
+        self
     }
 }
 
@@ -307,6 +514,19 @@ mod builder_tests {
         assert_eq!(
             built(Slice::new(vec![0], vec![10]).step(vec![2]).into()),
             parsed(r#"{"kind":"slice","start":[0],"stop":[10],"step":[2]}"#)
+        );
+    }
+
+    #[test]
+    fn outer_builder_matches_parse() {
+        use crate::{Outer, OuterAxis};
+        assert_eq!(
+            built(
+                Outer::new(vec![OuterAxis::All, OuterAxis::Intervals(vec![(0, 3)])])
+                    .labels(vec!["y".into(), "x".into()])
+                    .into()
+            ),
+            parsed(r#"{"kind":"outer","axes":[null,{"intervals":[[0,3]]}],"labels":["y","x"]}"#)
         );
     }
 
@@ -524,5 +744,97 @@ mod point_box_tests {
         let v = norm(r#"{ "kind": "box", "shape": [5] }"#);
         assert_eq!(v["input_inclusive_min"], serde_json::json!([0]));
         assert_eq!(v["input_exclusive_max"], serde_json::json!([5]));
+    }
+}
+
+#[cfg(test)]
+mod outer_tests {
+    use serde_json::json;
+
+    fn norm(json: &str) -> serde_json::Value {
+        let msg = crate::parse(json).unwrap();
+        serde_json::to_value(crate::normalize(msg).unwrap()).unwrap()
+    }
+    fn err(json: &str) -> crate::Reason {
+        match crate::parse(json) {
+            Ok(msg) => crate::normalize(msg).unwrap_err().reason,
+            Err(e) => e.reason,
+        }
+    }
+
+    /// `axes -> (input_inclusive_min, input_exclusive_max, output)`.
+    #[test]
+    fn outer_desugaring() {
+        let ia = |a: serde_json::Value| {
+            json!({ "offset": 0, "stride": 1, "index_array": a, "index_array_bounds": ["-inf", "+inf"] })
+        };
+        let id = |k: usize| json!({ "offset": 0, "stride": 1, "input_dimension": k });
+        let cases = [
+            // The whole axis: implicit infinite bounds, identity map.
+            (json!([null]), json!([["-inf"]]), json!([["+inf"]]), json!([id(0)])),
+            // A range is one dimension of a `slice`: x[5:10:2] keeps its source frame.
+            (
+                json!([{ "start": 5, "stop": 10, "step": 2 }]),
+                json!([2]),
+                json!([5]),
+                json!([{ "offset": 1, "stride": 2, "input_dimension": 0 }]),
+            ),
+            // Intervals expand in order; the result is numbered [0, m).
+            (
+                json!([{ "intervals": [[0, 2], [5, 7]] }]),
+                json!([0]),
+                json!([4]),
+                json!([ia(json!([0, 1, 5, 6]))]),
+            ),
+            // The array broadcasts: m along its own dimension, 1 along every other.
+            (
+                json!([null, { "indices": [4, 2] }, null]),
+                json!([["-inf"], 0, ["-inf"]]),
+                json!([["+inf"], 2, ["+inf"]]),
+                json!([id(0), ia(json!([[[4], [2]]])), id(2)]),
+            ),
+            // One coordinate collapses to a constant map; none collapses to offset 0.
+            (json!([{ "indices": [7] }]), json!([0]), json!([1]), json!([{ "offset": 7 }])),
+            (json!([{ "intervals": [[3, 3]] }]), json!([0]), json!([0]), json!([{ "offset": 0 }])),
+        ];
+        for (axes, lo, hi, output) in cases {
+            let v = norm(&json!({ "kind": "outer", "axes": axes }).to_string());
+            assert_eq!(v["input_inclusive_min"], lo, "axes {axes}");
+            assert_eq!(v["input_exclusive_max"], hi, "axes {axes}");
+            assert_eq!(v["output"], output, "axes {axes}");
+        }
+    }
+
+    #[test]
+    fn selector_with_members_of_two_forms_is_unknown_field() {
+        assert_eq!(
+            err(r#"{"kind":"outer","axes":[{"indices":[1],"intervals":[[0,1]]}]}"#),
+            crate::Reason::UnknownField
+        );
+    }
+
+    #[test]
+    fn range_missing_stop_is_invalid_json() {
+        assert_eq!(err(r#"{"kind":"outer","axes":[{"start":0}]}"#), crate::Reason::InvalidJson);
+    }
+
+    #[test]
+    fn interval_that_is_not_a_pair_is_invalid_json() {
+        assert_eq!(err(r#"{"kind":"outer","axes":[{"intervals":[[1,2,3]]}]}"#), crate::Reason::InvalidJson);
+    }
+
+    #[test]
+    fn reversed_interval_is_bounds_out_of_order() {
+        assert_eq!(err(r#"{"kind":"outer","axes":[{"intervals":[[5,3]]}]}"#), crate::Reason::BoundsOutOfOrder);
+    }
+
+    #[test]
+    fn range_step_zero() {
+        assert_eq!(err(r#"{"kind":"outer","axes":[{"start":0,"stop":4,"step":0}]}"#), crate::Reason::StepZero);
+    }
+
+    #[test]
+    fn labels_length_mismatch_is_rank_mismatch() {
+        assert_eq!(err(r#"{"kind":"outer","axes":[null,null],"labels":["x"]}"#), crate::Reason::RankMismatch);
     }
 }

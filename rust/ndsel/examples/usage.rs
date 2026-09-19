@@ -4,11 +4,11 @@
 //!
 //! Messages can be built programmatically with the ergonomic constructors
 //! (`Point::new`, `BoxSel::new().shape(...)`, `Slice::new(...).step(...)`,
-//! `Points::new`) — each is `Into<Message>` — or parsed from JSON with `parse`.
+//! `Points::new`, `Outer::new`) — each is `Into<Message>` — or parsed from JSON with `parse`.
 //! Either way, `normalize` reduces a message to a canonical `Transform`, which
 //! serializes through serde (`serde_json::to_string`).
 
-use ndsel::{BoxSel, NdselError, Point, Points, Slice, Transform, normalize, parse};
+use ndsel::{BoxSel, NdselError, Outer, OuterAxis, Point, Points, Slice, Transform, normalize, parse};
 
 fn show(label: &str, result: Result<Transform, NdselError>) {
     match result {
@@ -26,6 +26,10 @@ fn main() {
     show("box shape 3x4", normalize(BoxSel::new().shape(vec![3, 4]).into()));
     show("slice [0:10:2]", normalize(Slice::new(vec![0], vec![10]).step(vec![2]).into()));
     show("points", normalize(Points::new(vec![vec![1, 10], vec![2, 20]]).into()));
+    show(
+        "outer, holes",
+        normalize(Outer::new(vec![OuterAxis::All, OuterAxis::Intervals(vec![(0, 3), (5, 8)])]).into()),
+    );
     show("transform 3x4", parse(r#"{"kind":"transform","input_inclusive_min":[0,0],"input_exclusive_max":[3,4]}"#).and_then(normalize));
 
     println!("\n# error handling: stable, machine-readable reason codes");

@@ -1,0 +1,165 @@
+[
+  {
+    "name": "outer/all-axes",
+    "input": { "kind": "outer", "axes": [null, null] },
+    "normalized": {
+      "input_rank": 2, "input_inclusive_min": [["-inf"], ["-inf"]], "input_exclusive_max": [["+inf"], ["+inf"]],
+      "input_labels": ["", ""],
+      "output": [
+        { "offset": 0, "stride": 1, "input_dimension": 0 },
+        { "offset": 0, "stride": 1, "input_dimension": 1 }
+      ]
+    }
+  },
+  {
+    "name": "outer/rank-zero",
+    "input": { "kind": "outer", "axes": [] },
+    "normalized": {
+      "input_rank": 0, "input_inclusive_min": [], "input_exclusive_max": [],
+      "input_labels": [],
+      "output": []
+    }
+  },
+  {
+    "name": "outer/ranges-match-slice",
+    "input": { "kind": "outer", "axes": [{ "start": 4, "stop": 10, "step": 2 }, { "start": 19, "stop": -1, "step": -1 }, { "start": 5, "stop": 10 }] },
+    "normalized": {
+      "input_rank": 3, "input_inclusive_min": [2, -19, 5], "input_exclusive_max": [5, 1, 10],
+      "input_labels": ["", "", ""],
+      "output": [
+        { "offset": 0, "stride": 2, "input_dimension": 0 },
+        { "offset": 0, "stride": -1, "input_dimension": 1 },
+        { "offset": 0, "stride": 1, "input_dimension": 2 }
+      ]
+    }
+  },
+  {
+    "name": "outer/indices-first-of-three",
+    "input": { "kind": "outer", "axes": [{ "indices": [3, 1, 4] }, null, null] },
+    "normalized": {
+      "input_rank": 3, "input_inclusive_min": [0, ["-inf"], ["-inf"]], "input_exclusive_max": [3, ["+inf"], ["+inf"]],
+      "input_labels": ["", "", ""],
+      "output": [
+        { "offset": 0, "stride": 1, "index_array": [[[3]], [[1]], [[4]]], "index_array_bounds": ["-inf", "+inf"] },
+        { "offset": 0, "stride": 1, "input_dimension": 1 },
+        { "offset": 0, "stride": 1, "input_dimension": 2 }
+      ]
+    }
+  },
+  {
+    "name": "outer/intervals-last-of-three",
+    "input": { "kind": "outer", "axes": [null, null, { "intervals": [[0, 3], [5, 7], [9, 10]] }] },
+    "normalized": {
+      "input_rank": 3, "input_inclusive_min": [["-inf"], ["-inf"], 0], "input_exclusive_max": [["+inf"], ["+inf"], 6],
+      "input_labels": ["", "", ""],
+      "output": [
+        { "offset": 0, "stride": 1, "input_dimension": 0 },
+        { "offset": 0, "stride": 1, "input_dimension": 1 },
+        { "offset": 0, "stride": 1, "index_array": [[[0, 1, 2, 5, 6, 9]]], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  },
+  {
+    "name": "outer/intervals-skip-chunk-padding",
+    "input": { "kind": "outer", "axes": [{ "intervals": [[0, 5], [8, 13]] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [10],
+      "input_labels": [""],
+      "output": [
+        { "offset": 0, "stride": 1, "index_array": [0, 1, 2, 3, 4, 8, 9, 10, 11, 12], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  },
+  {
+    "name": "outer/mixed-forms-with-labels",
+    "input": { "kind": "outer", "axes": [{ "start": 0, "stop": 2 }, { "intervals": [[2, 4], [6, 8]] }, { "indices": [0, 5] }], "labels": ["z", "y", "x"] },
+    "normalized": {
+      "input_rank": 3, "input_inclusive_min": [0, 0, 0], "input_exclusive_max": [2, 4, 2],
+      "input_labels": ["z", "y", "x"],
+      "output": [
+        { "offset": 0, "stride": 1, "input_dimension": 0 },
+        { "offset": 0, "stride": 1, "index_array": [[[2], [3], [6], [7]]], "index_array_bounds": ["-inf", "+inf"] },
+        { "offset": 0, "stride": 1, "index_array": [[[0, 5]]], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  },
+  {
+    "name": "outer/intervals-order-overlap-and-empty-kept",
+    "input": { "kind": "outer", "axes": [{ "intervals": [[5, 7], [3, 3], [4, 6]] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [4],
+      "input_labels": [""],
+      "output": [
+        { "offset": 0, "stride": 1, "index_array": [5, 6, 4, 5], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  },
+  {
+    "name": "outer/indices-repeats-kept",
+    "input": { "kind": "outer", "axes": [{ "indices": [2, 2, 0] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [3],
+      "input_labels": [""],
+      "output": [
+        { "offset": 0, "stride": 1, "index_array": [2, 2, 0], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  },
+  {
+    "name": "outer/indices-singleton-is-constant",
+    "input": { "kind": "outer", "axes": [{ "indices": [7] }, null] },
+    "normalized": {
+      "input_rank": 2, "input_inclusive_min": [0, ["-inf"]], "input_exclusive_max": [1, ["+inf"]],
+      "input_labels": ["", ""],
+      "output": [
+        { "offset": 7 },
+        { "offset": 0, "stride": 1, "input_dimension": 1 }
+      ]
+    }
+  },
+  {
+    "name": "outer/indices-empty-is-constant",
+    "input": { "kind": "outer", "axes": [null, { "indices": [] }] },
+    "normalized": {
+      "input_rank": 2, "input_inclusive_min": [["-inf"], 0], "input_exclusive_max": [["+inf"], 0],
+      "input_labels": ["", ""],
+      "output": [
+        { "offset": 0, "stride": 1, "input_dimension": 0 },
+        { "offset": 0 }
+      ]
+    }
+  },
+  {
+    "name": "outer/intervals-singleton-is-constant",
+    "input": { "kind": "outer", "axes": [{ "intervals": [[4, 5]] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [1],
+      "input_labels": [""],
+      "output": [
+        { "offset": 4 }
+      ]
+    }
+  },
+  {
+    "name": "outer/intervals-empty-is-constant",
+    "input": { "kind": "outer", "axes": [{ "intervals": [[4, 4]] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [0],
+      "input_labels": [""],
+      "output": [
+        { "offset": 0 }
+      ]
+    }
+  },
+  {
+    "name": "outer/indices-beyond-2^53",
+    "input": { "kind": "outer", "axes": [{ "indices": [0, 1152921504606846976] }] },
+    "normalized": {
+      "input_rank": 1, "input_inclusive_min": [0], "input_exclusive_max": [2],
+      "input_labels": [""],
+      "output": [
+        { "offset": 0, "stride": 1, "index_array": [0, 1152921504606846976], "index_array_bounds": ["-inf", "+inf"] }
+      ]
+    }
+  }
+]

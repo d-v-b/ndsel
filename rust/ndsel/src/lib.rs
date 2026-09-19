@@ -16,7 +16,7 @@ mod value;
 pub use domain::Domain;
 pub use error::{NdselError, Reason};
 pub use output::OutputMap;
-pub use shorthand::{BoxSel, Point, Points, Slice};
+pub use shorthand::{BoxSel, Outer, OuterAxis, Point, Points, Slice};
 pub use transform::Transform;
 pub use value::{ImplicitValue, IndexValue};
 
@@ -32,6 +32,7 @@ pub enum Message {
     Box(shorthand::BoxSel),
     Slice(shorthand::Slice),
     Points(shorthand::Points),
+    Outer(shorthand::Outer),
     Transform(Transform),
 }
 
@@ -55,6 +56,11 @@ impl From<Points> for Message {
         Message::Points(p)
     }
 }
+impl From<Outer> for Message {
+    fn from(o: Outer) -> Self {
+        Message::Outer(o)
+    }
+}
 impl From<Transform> for Message {
     fn from(t: Transform) -> Self {
         Message::Transform(t)
@@ -68,6 +74,7 @@ pub fn normalize(message: Message) -> Result<Transform, NdselError> {
         Message::Box(b) => b.desugar(),
         Message::Slice(s) => s.desugar(),
         Message::Points(p) => p.desugar(),
+        Message::Outer(o) => o.desugar(),
         Message::Transform(t) => t.canonicalize(),
     }
 }
@@ -82,7 +89,7 @@ pub fn parse(json: &str) -> Result<Message, NdselError> {
         .and_then(|k| k.as_str())
         .ok_or_else(|| NdselError::new(Reason::InvalidJson, "missing string `kind`"))?
         .to_owned();
-    if !matches!(kind.as_str(), "point" | "box" | "slice" | "points" | "transform") {
+    if !matches!(kind.as_str(), "point" | "box" | "slice" | "points" | "outer" | "transform") {
         return Err(NdselError::new(Reason::UnknownKind, format!("unknown kind: {kind}")));
     }
     // Strict: reject unrecognized members (mirrors the schema's
@@ -117,6 +124,7 @@ pub fn parse(json: &str) -> Result<Message, NdselError> {
         "box" => Message::Box(from_value(value).map_err(NdselError::from_serde)?),
         "slice" => Message::Slice(from_value(value).map_err(NdselError::from_serde)?),
         "points" => Message::Points(from_value(value).map_err(NdselError::from_serde)?),
+        "outer" => Message::Outer(shorthand::Outer::from_json(value)?),
         "transform" => Message::Transform(from_value(value).map_err(NdselError::from_serde)?),
         _ => unreachable!("kind validated above"),
     };
@@ -129,6 +137,7 @@ fn allowed_fields(kind: &str) -> &'static [&'static str] {
         "point" | "points" => &["kind", "coords"],
         "box" => &["kind", "inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"],
         "slice" => &["kind", "start", "stop", "step", "labels"],
+        "outer" => &["kind", "axes", "labels"],
         "transform" => &[
             "kind",
             "input_rank",

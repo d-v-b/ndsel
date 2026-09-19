@@ -7,6 +7,7 @@ import {
   NdselError,
   box,
   normalize,
+  outer,
   parse,
   point,
   points,
@@ -26,6 +27,7 @@ show("point (4, 7)", normalize(point([4, 7])));
 show("box shape 3x4", normalize(box({ shape: [3, 4] })));
 show("slice [0:10:2]", normalize(slice({ start: [0], stop: [10], step: [2] })));
 show("points", normalize(points([[1, 10], [2, 20]])));
+show("outer, holes", normalize(outer([null, { intervals: [[0, 3], [5, 8]] }])));
 show("transform 3x4", normalize(parse('{"kind":"transform","input_inclusive_min":[0,0],"input_exclusive_max":[3,4]}')));
 
 console.log("\n# error handling: stable, machine-readable reason codes");

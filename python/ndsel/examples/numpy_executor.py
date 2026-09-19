@@ -20,7 +20,7 @@ import itertools
 
 import numpy as np
 
-from ndsel import Box, Point, Points, Slice, normalize, parse
+from ndsel import Box, Outer, Point, Points, Slice, normalize, parse
 
 
 def _finite(bound: object) -> int:
@@ -37,7 +37,8 @@ def _eval_output(omap: dict, gi: list[int], mins: list[int]) -> int:
     offset = omap.get("offset", 0)
     if "index_array" in omap:  # output coordinate looked up from an explicit array
         arr = np.asarray(omap["index_array"])
-        local = tuple(g - lo for g, lo in zip(gi, mins))
+        # A size-1 array dimension broadcasts across the whole input dimension.
+        local = tuple(0 if n == 1 else g - lo for g, lo, n in zip(gi, mins, arr.shape))
         return offset + omap.get("stride", 1) * int(arr[local])
     if "input_dimension" in omap:  # affine map of one input dimension
         return offset + omap.get("stride", 1) * gi[omap["input_dimension"]]
@@ -80,6 +81,10 @@ def main() -> None:
     rows = [p[0] for p in pts]
     cols = [p[1] for p in pts]
     check("points == a[[1,3], [2,4]]", Points(coords=pts), a, a[rows, cols])
+
+    # outer == orthogonal indexing; here, every row and the columns outside [3, 7)
+    holes = Outer(axes=[{"start": 0, "stop": 5}, {"intervals": [[0, 3], [7, 12]]}])
+    check("outer  == a[:, np.r_[0:3, 7:12]]", holes, a, a[:, np.r_[0:3, 7:12]])
 
     # --- the differentiator: arrangement (needs the full `transform` kind) ---
     # A transpose — no shorthand expresses it; the output maps reorder the axes.

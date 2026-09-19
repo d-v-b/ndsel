@@ -32,6 +32,35 @@
       "not": { "required": ["input_dimension", "index_array"] },
       "additionalProperties": false
     },
+    "outerAxis": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": { "indices": { "type": "array", "items": { "type": "integer" } } },
+          "required": ["indices"], "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intervals": {
+              "type": "array",
+              "items": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 }
+            }
+          },
+          "required": ["intervals"], "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "start": { "type": "integer" },
+            "stop": { "type": "integer" },
+            "step": { "type": "integer" }
+          },
+          "required": ["start", "stop"], "additionalProperties": false
+        }
+      ]
+    },
     "upperBoundExclusivity": {
       "allOf": [
         { "not": { "required": ["exclusive_max", "inclusive_max"] } },
@@ -84,6 +113,15 @@
         "coords": { "type": "array", "items": { "type": "array", "items": { "type": "integer" } } }
       },
       "required": ["kind", "coords"], "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "outer" },
+        "axes": { "type": "array", "items": { "$ref": "#/$defs/outerAxis" } },
+        "labels": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["kind", "axes"], "additionalProperties": false
     },
     {
       "type": "object",

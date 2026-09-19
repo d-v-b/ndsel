@@ -3,13 +3,13 @@
  *
  * Parse a JSON string with `parse`, then reduce it to a canonical `Transform`
  * with `normalize`. Construct messages ergonomically with the camelCase
- * builders (`point`/`box`/`slice`/`points`).
+ * builders (`point`/`box`/`slice`/`points`/`outer`).
  */
 
 import { NdselError, Reason } from "./errors.ts";
 import { parseJson, stringifyJson } from "./json.ts";
 import type { Message } from "./messages.ts";
-import { desugarBox, desugarPoint, desugarPoints, desugarSlice } from "./shorthand.ts";
+import { desugarBox, desugarOuter, desugarPoint, desugarPoints, desugarSlice } from "./shorthand.ts";
 import { type Transform, canonicalizeTransform } from "./transform.ts";
 
 export { NdselError, Reason };
@@ -18,6 +18,8 @@ export type { ReasonCode } from "./errors.ts";
 export type {
   BoxMessage,
   Message,
+  OuterAxis,
+  OuterMessage,
   OutputMapInput,
   PointMessage,
   PointsMessage,
@@ -28,9 +30,9 @@ export type { Transform } from "./transform.ts";
 export type { OutputMapJson } from "./output.ts";
 export type { DomainFields } from "./domain.ts";
 export type { BoundJson, IndexValue, Int } from "./values.ts";
-export { type BoxOptions, type SliceOptions, box, point, points, slice } from "./builders.ts";
+export { type BoxOptions, type SliceOptions, box, outer, point, points, slice } from "./builders.ts";
 
-const KNOWN_KINDS = new Set(["point", "box", "slice", "points", "transform"]);
+const KNOWN_KINDS = new Set(["point", "box", "slice", "points", "outer", "transform"]);
 
 // The complete set of recognized members per kind (`kind` included). Strict:
 // any other member is rejected with `unknown_field`.
@@ -39,6 +41,7 @@ const ALLOWED_FIELDS: Record<string, Set<string>> = {
   box: new Set(["kind", "inclusive_min", "exclusive_max", "inclusive_max", "shape", "labels"]),
   slice: new Set(["kind", "start", "stop", "step", "labels"]),
   points: new Set(["kind", "coords"]),
+  outer: new Set(["kind", "axes", "labels"]),
   transform: new Set([
     "kind",
     "input_rank",
@@ -91,6 +94,8 @@ export function normalize(message: Message): Transform {
       return desugarSlice(message);
     case "points":
       return desugarPoints(message);
+    case "outer":
+      return desugarOuter(message);
     case "transform":
       return canonicalizeTransform(message);
     default: {

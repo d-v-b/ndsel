@@ -1,5 +1,5 @@
 import type { BoundJson, Int } from "./values.ts";
-import type { BoxMessage, PointMessage, PointsMessage, SliceMessage } from "./messages.ts";
+import type { BoxMessage, OuterAxis, OuterMessage, PointMessage, PointsMessage, SliceMessage } from "./messages.ts";
 
 export function point(coords: Int[]): PointMessage {
   return { kind: "point", coords };
@@ -39,4 +39,14 @@ export function slice(opts: SliceOptions): SliceMessage {
 
 export function points(coords: Int[][]): PointsMessage {
   return { kind: "points", coords };
+}
+
+/**
+ * Per-axis selectors: `null` (whole axis), `{ start, stop, step? }`,
+ * `{ indices: [...] }`, or `{ intervals: [[lo, hi], ...] }`.
+ */
+export function outer(axes: OuterAxis[], labels?: string[]): OuterMessage {
+  const msg: OuterMessage = { kind: "outer", axes };
+  if (labels !== undefined) msg.labels = labels;
+  return msg;
 }
